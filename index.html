@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineSelect — Real-Time Seat-Aware Recommender</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════════════════════
+           DESIGN SYSTEM — Dark cinema aesthetic, gold accents
+           Matches Chapter 3: dark/light theme toggle (FR xii)
+        ═══════════════════════════════════════════════════════════ */
+        :root {
+            --bg-base:        #0a0c10;
+            --bg-surface:     #12151c;
+            --bg-card:        #1a1e28;
+            --bg-card-hover:  #1f2435;
+            --gold:           #f5c842;
+            --gold-dim:       #c9a230;
+            --green:          #22c55e;
+            --red:            #ef4444;
+            --blue:           #3b82f6;
+            --amber:          #f59e0b;
+            --text-primary:   #f0ece3;
+            --text-secondary: #8a8f9e;
+            --text-dim:       #4a4f5e;
+            --border:         rgba(255,255,255,0.07);
+            --border-gold:    rgba(245,200,66,0.3);
+            --shadow-card:    0 8px 32px rgba(0,0,0,0.4);
+            --radius-sm:      6px;
+            --radius-md:      12px;
+            --radius-lg:      18px;
+            --font-display:   'Bebas Neue', sans-serif;
+            --font-body:      'DM Sans', sans-serif;
+        }
+        [data-theme="light"] {
+            --bg-base:        #f5f3ef;
+            --bg-surface:     #eceae4;
+            --bg-card:        #ffffff;
+            --bg-card-hover:  #f9f7f3;
+            --text-primary:   #1a1a2e;
+            --text-secondary: #5a5f72;
+            --text-dim:       #aaa;
+            --border:         rgba(0,0,0,0.08);
+            --shadow-card:    0 4px 20px rgba(0,0,0,0.1);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 3px; }
+        .hidden  { display: none !important; }
+
+        /* ════ TOPBAR ════ */
+        #topbar {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(10,12,16,0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px; height: 56px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        #topbar .logo {
+            font-family: var(--font-display); font-size: 26px;
+            letter-spacing: 2px; color: var(--gold);
+        }
+        #topbar .logo span {
+            color: var(--text-secondary); font-size: 13px;
+            font-family: var(--font-body); letter-spacing: 0; margin-left: 8px;
+        }
+        #topbar-right { display: flex; align-items: center; gap: 14px; }
+        #user-greeting { font-size: 13px; color: var(--text-secondary); }
+        #user-greeting strong { color: var(--text-primary); }
+        #theme-toggle {
+            width: 36px; height: 20px; background: var(--text-dim);
+            border-radius: 10px; border: none; position: relative;
+            cursor: pointer; transition: background 0.2s;
+        }
+        #theme-toggle::after {
+            content: ''; position: absolute;
+            width: 14px; height: 14px; background: #fff; border-radius: 50%;
+            top: 3px; left: 3px; transition: transform 0.2s;
+        }
+        [data-theme="light"] #theme-toggle { background: var(--gold); }
+        [data-theme="light"] #theme-toggle::after { transform: translateX(16px); }
+
+        /* ════ LAYOUT ════ */
+        .page { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+        /* ════ AUTH ════ */
+        #auth-section {
+            min-height: calc(100vh - 56px);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .auth-box {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 48px 40px;
+            width: 100%; max-width: 420px;
+            box-shadow: var(--shadow-card); animation: fadeUp 0.4s ease;
+        }
+        .auth-box h2 {
+            font-family: var(--font-display); font-size: 32px;
+            letter-spacing: 2px; color: var(--gold); margin-bottom: 6px;
+        }
+        .auth-box p { color: var(--text-secondary); margin-bottom: 28px; font-size: 14px; }
+        .auth-tabs {
+            display: flex; margin-bottom: 28px;
+            border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border);
+        }
+        .auth-tab {
+            flex: 1; padding: 10px; text-align: center;
+            background: transparent; border: none; cursor: pointer;
+            font-family: var(--font-body); font-size: 14px; font-weight: 500;
+            color: var(--text-secondary); transition: all 0.2s;
+        }
+        .auth-tab.active { background: var(--gold); color: #000; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 12px; font-weight: 500;
+            color: var(--text-secondary); margin-bottom: 6px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .form-group input {
+            width: 100%; padding: 12px 14px;
+            background: var(--bg-surface); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text-primary);
+            font-family: var(--font-body); font-size: 15px;
+            transition: border-color 0.2s; outline: none;
+        }
+        .form-group input:focus { border-color: var(--gold-dim); }
+        .btn-primary {
+            width: 100%; padding: 13px; background: var(--gold); color: #000;
+            border: none; border-radius: var(--radius-sm);
+            font-family: var(--font-body); font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: background 0.2s, transform 0.1s; margin-top: 8px;
+        }
+        .btn-primary:hover  { background: var(--gold-dim); }
+        .btn-primary:active { transform: scale(0.99); }
+        .auth-error {
+            background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+            color: #fc8c8c; border-radius: var(--radius-sm);
+            padding: 10px 14px; font-size: 13px; margin-top: 12px;
+        }
+
+        /* ════ APP ════ */
+        #app-section { animation: fadeUp 0.4s ease; }
+
+        /* ── Hero slider ── */
+        #hero-slider-wrap {
+            position: relative; overflow: hidden;
+            border-radius: var(--radius-lg); height: 260px; margin-bottom: 40px;
+        }
+        #movie-slider { display: flex; height: 100%; transition: transform 0.6s cubic-bezier(0.4,0,0.2,1); }
+        #movie-slider img { min-width: 100%; height: 100%; object-fit: cover; }
+        #slider-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%);
+        }
+        #movie-title-display {
+            position: absolute; bottom: 18px; left: 24px;
+            font-family: var(--font-display); font-size: 22px;
+            letter-spacing: 2px; color: var(--gold);
+        }
+        .slider-dots { position: absolute; bottom: 20px; right: 20px; display: flex; gap: 6px; }
+        .slider-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: rgba(255,255,255,0.35); cursor: pointer; transition: background 0.2s;
+        }
+        .slider-dot.active { background: var(--gold); }
+
+        /* ── Section heading ── */
+        .section-heading {
+            font-family: var(--font-display); font-size: 22px;
+            letter-spacing: 2px; color: var(--gold); margin-bottom: 18px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-heading .badge {
+            font-family: var(--font-body); font-size: 11px; font-weight: 500;
+            background: var(--gold); color: #000; padding: 2px 8px;
+            border-radius: 20px; letter-spacing: 0;
+        }
+
+        /* ════ P2 — RECOMMENDATIONS ════ */
+        #reco-section { margin-bottom: 48px; }
+        .reco-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 18px;
+        }
+        .movie-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-md); overflow: hidden; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        }
+        .movie-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            border-color: var(--border-gold);
+        }
+        .movie-card.selected-movie { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+        .movie-card-top {
+            position: relative; height: 130px;
+            background: var(--bg-surface); overflow: hidden;
+        }
+        .movie-card-top img { width: 100%; height: 100%; object-fit: cover; }
+        .movie-card-top .no-poster {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display); font-size: 36px;
+            letter-spacing: 3px; color: var(--text-dim);
+        }
+        .score-badge {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(0,0,0,0.75); border: 1px solid var(--gold);
+            color: var(--gold); font-family: var(--font-display);
+            font-size: 18px; letter-spacing: 1px;
+            padding: 3px 10px; border-radius: 20px;
+        }
+        .movie-card-body { padding: 14px 16px 16px; }
+        .movie-card-body h3 {
+            font-family: var(--font-display); font-size: 18px;
+            letter-spacing: 1px; color: var(--text-primary);
+            margin-bottom: 4px; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .movie-meta { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+        .movie-meta span + span::before { content: ' · '; }
+        .score-bars { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        .score-bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+        .score-bar-label { width: 90px; color: var(--text-secondary); flex-shrink: 0; }
+        .score-bar-track { flex: 1; height: 4px; background: var(--bg-surface); border-radius: 2px; overflow: hidden; }
+        .score-bar-fill  { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+        .score-bar-fill.genre   { background: #a78bfa; }
+        .score-bar-fill.avail   { background: var(--green); }
+        .score-bar-fill.quality { background: var(--gold); }
+        .score-bar-fill.prox    { background: var(--blue); }
+        .score-bar-fill.collab  { background: #f472b6; }
+        .score-bar-fill.rating  { background: var(--amber); }
+        .score-bar-val { width: 28px; text-align: right; color: var(--text-dim); font-size: 11px; }
+        .select-movie-btn {
+            width: 100%; padding: 9px;
+            background: transparent; border: 1px solid var(--border-gold);
+            color: var(--gold); border-radius: var(--radius-sm);
+            font-family: var(--font-body); font-size: 13px; font-weight: 500;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .select-movie-btn:hover  { background: rgba(245,200,66,0.1); }
+        .select-movie-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%; animation: shimmer 1.4s infinite;
+            border-radius: var(--radius-md); height: 280px;
+        }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        /* ════ P3 — SEAT MAP ════ */
+        #seat-section { margin-bottom: 48px; }
+        #showtime-info {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+        }
+        #showtime-info .info-item { font-size: 13px; color: var(--text-secondary); }
+        #showtime-info .info-item strong { color: var(--text-primary); display: block; font-size: 15px; }
+        .screen-bar {
+            background: linear-gradient(to bottom, rgba(245,200,66,0.15), transparent);
+            border-top: 2px solid rgba(245,200,66,0.4);
+            text-align: center; padding: 8px 0 20px;
+            font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+            color: var(--text-dim);
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+        }
+        #seat-grid-wrap {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 24px 20px 28px;
+        }
+        #seat-container {
+            display: grid;
+            grid-template-columns: repeat(8, 44px);
+            gap: 10px; justify-content: center;
+        }
+
+        /* Seat buttons — 4 states from Chapter 3 FR vi */
+        .seat-btn {
+            width: 44px; height: 44px;
+            border-radius: 8px 8px 4px 4px; border: 1px solid transparent;
+            font-family: var(--font-body); font-size: 11px; font-weight: 500;
+            cursor: pointer; transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
+            display: flex; align-items: center; justify-content: center;
+            color: #000; position: relative;
+        }
+        .seat-btn::after {
+            content: ''; position: absolute; bottom: -2px;
+            left: 4px; right: 4px; height: 3px;
+            background: rgba(0,0,0,0.25); border-radius: 0 0 3px 3px;
+        }
+        .seat-btn:hover:not(.taken):not(.locked-other) {
+            transform: scale(1.12) translateY(-2px); filter: brightness(1.15);
+        }
+        /* State 1: Available high-quality (score ≥ 8.5) — Gold */
+        .seat-btn.quality-high  { background: var(--gold); border-color: var(--gold-dim); }
+        /* State 2: Available mid-quality (score ≥ 7.0) — Green */
+        .seat-btn.quality-mid   { background: var(--green); border-color: #16a34a; color: #fff; }
+        /* State 3: Available low-quality — Steel */
+        .seat-btn.quality-low   { background: #374151; border-color: #4b5563; color: var(--text-secondary); }
+        /* State 4: Selected by current user — Blue */
+        .seat-btn.selected      { background: var(--blue) !important; border-color: #93c5fd !important; color: #fff !important; transform: scale(1.12) translateY(-2px); box-shadow: 0 0 12px rgba(59,130,246,0.5); }
+        /* State 5: Locked by current user (5-min in-memory lock) — Pulsing blue */
+        .seat-btn.locked-you    { background: var(--blue) !important; border-color: #93c5fd !important; color: #fff !important; animation: pulse-lock 1.5s infinite; }
+        /* State 6: Locked by ANOTHER user — Amber, blocked */
+        .seat-btn.locked-other  { background: var(--amber); border-color: #d97706; color: #000; cursor: not-allowed; opacity: 0.8; }
+        /* State 7: Permanently taken — Red, faded */
+        .seat-btn.taken         { background: var(--red); border-color: #b91c1c; color: #fff; cursor: not-allowed; opacity: 0.35; }
+        @keyframes pulse-lock {
+            0%,100% { box-shadow: 0 0 6px rgba(59,130,246,0.4); }
+            50%      { box-shadow: 0 0 14px rgba(59,130,246,0.8); }
+        }
+        .seat-legend {
+            display: flex; flex-wrap: wrap; gap: 16px;
+            margin-top: 20px; justify-content: center;
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+        .legend-dot  { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+        #booking-bar {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 18px 24px; margin-top: 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 16px; flex-wrap: wrap;
+        }
+        #selected-summary { font-size: 14px; color: var(--text-secondary); }
+        #selected-summary strong { color: var(--text-primary); }
+        .btn-confirm {
+            padding: 12px 32px; background: var(--green); color: #fff;
+            border: none; border-radius: var(--radius-sm);
+            font-family: var(--font-body); font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .btn-confirm:hover { background: #16a34a; }
+        .btn-reset {
+            padding: 10px 20px; background: transparent;
+            border: 1px solid rgba(239,68,68,0.4);
+            color: var(--red); border-radius: var(--radius-sm);
+            font-family: var(--font-body); font-size: 13px;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .btn-reset:hover { background: rgba(239,68,68,0.1); }
+
+        /* ════ BOOKING HISTORY ════ */
+        #history-section { margin-bottom: 60px; }
+        .booking-item {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; flex-wrap: wrap; transition: border-color 0.2s;
+        }
+        .booking-item:hover { border-color: var(--border-gold); }
+        .booking-item .bk-title  { font-weight: 500; color: var(--text-primary); font-size: 15px; }
+        .booking-item .bk-meta   { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .booking-item .bk-ref    { font-size: 12px; font-family: monospace; color: var(--gold); background: rgba(245,200,66,0.08); padding: 3px 8px; border-radius: 4px; }
+        .booking-item .bk-amount { font-weight: 600; color: var(--green); }
+        .no-history { color: var(--text-secondary); font-size: 14px; padding: 20px 0; }
+
+        /* ════ PAYMENT MODAL ════ */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(4px); z-index: 200;
+            display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal-box {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 36px 32px;
+            width: 100%; max-width: 460px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+        }
+        .modal-box h3 {
+            font-family: var(--font-display); font-size: 24px;
+            letter-spacing: 2px; color: var(--gold); margin-bottom: 20px;
+        }
+        .modal-row {
+            display: flex; justify-content: space-between;
+            padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+        }
+        .modal-row:last-of-type { border-bottom: none; }
+        .modal-row .label { color: var(--text-secondary); }
+        .modal-row .value { color: var(--text-primary); font-weight: 500; }
+        .modal-total {
+            font-size: 18px; font-weight: 600; color: var(--gold);
+            padding: 14px 0 0; display: flex; justify-content: space-between;
+        }
+        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
+        .modal-actions .btn-cancel {
+            flex: 1; padding: 12px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-secondary);
+            border-radius: var(--radius-sm); font-family: var(--font-body);
+            cursor: pointer; transition: border-color 0.2s;
+        }
+        .modal-actions .btn-cancel:hover { border-color: var(--text-secondary); }
+        .modal-actions .btn-pay {
+            flex: 2; padding: 12px; background: var(--green); color: #fff;
+            border: none; border-radius: var(--radius-sm);
+            font-family: var(--font-body); font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .modal-actions .btn-pay:hover    { background: #16a34a; }
+        .modal-actions .btn-pay:disabled { background: var(--text-dim); cursor: wait; }
+
+        /* ════ TOAST ════ */
+        #toast {
+            position: fixed; bottom: 28px; right: 28px; z-index: 300;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 14px 20px;
+            font-size: 14px; box-shadow: var(--shadow-card); max-width: 320px;
+            transform: translateY(20px); opacity: 0;
+            transition: all 0.3s ease; pointer-events: none;
+        }
+        #toast.show    { transform: translateY(0); opacity: 1; }
+        #toast.success { border-color: rgba(34,197,94,0.4);  color: var(--green); }
+        #toast.error   { border-color: rgba(239,68,68,0.4);  color: var(--red); }
+        #toast.info    { border-color: var(--border-gold);   color: var(--gold); }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    </style>
+</head>
+<body>
+
+<!-- ════ TOPBAR ════ -->
+<header id="topbar">
+    <div class="logo">CINESELECT <span>Seat-Aware Recommender</span></div>
+    <div id="topbar-right">
+        <span id="user-greeting" class="hidden">Welcome, <strong id="display-user"></strong></span>
+        <button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle dark/light mode"></button>
+    </div>
+</header>
+
+<!-- ════ P1 — AUTH ════ -->
+<section id="auth-section">
+    <div class="auth-box">
+        <h2>CINESELECT</h2>
+        <p>Real-time seat-aware movie recommendations</p>
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+            <button class="auth-tab"        onclick="switchAuthTab('register')">Register</button>
+        </div>
+        <div id="login-form">
+            <div class="form-group"><label>Username</label>
+                <input type="text"     id="login-username" placeholder="Enter username" autocomplete="username"></div>
+            <div class="form-group"><label>Password</label>
+                <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password"></div>
+            <button class="btn-primary" onclick="handleLogin()">Sign In</button>
+        </div>
+        <div id="register-form" class="hidden">
+            <div class="form-group"><label>Username</label>
+                <input type="text"     id="reg-username" placeholder="Choose a username"></div>
+            <div class="form-group"><label>Email</label>
+                <input type="email"    id="reg-email"    placeholder="your@email.com"></div>
+            <div class="form-group"><label>Password</label>
+                <input type="password" id="reg-password" placeholder="Create a password"></div>
+            <button class="btn-primary" onclick="handleRegister()">Create Account</button>
+        </div>
+        <div id="auth-error" class="auth-error hidden"></div>
+    </div>
+</section>
+
+<!-- ════ MAIN APP (post-login) ════ -->
+<section id="app-section" class="hidden">
+<div class="page">
+
+    <!-- Hero slider -->
+    <div id="hero-slider-wrap">
+        <div id="movie-slider">
+            <img src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?auto=format&fit=crop&w=1200&q=80" alt="Inception">
+            <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1200&q=80" alt="Interstellar">
+            <img src="https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80" alt="Cinema">
+        </div>
+        <div id="slider-overlay"></div>
+        <div id="movie-title-display">Inception</div>
+        <div class="slider-dots" id="slider-dots">
+            <div class="slider-dot active" onclick="goToSlide(0)"></div>
+            <div class="slider-dot"        onclick="goToSlide(1)"></div>
+            <div class="slider-dot"        onclick="goToSlide(2)"></div>
+        </div>
+    </div>
+
+    <!-- P2 — RECOMMENDATIONS -->
+    <section id="reco-section">
+        <h2 class="section-heading">
+            Recommended For You <span class="badge">HYBRID AI · 6 SIGNALS</span>
+        </h2>
+        <div id="reco-grid" class="reco-grid">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+        </div>
+    </section>
+
+    <!-- P3 — SEAT MAP -->
+    <section id="seat-section">
+        <h2 class="section-heading">
+            Select Your Seats
+            <span id="seat-section-subtitle"
+                  style="font-family:var(--font-body);font-size:14px;color:var(--text-secondary);letter-spacing:0;font-weight:400">
+                — pick a movie above first
+            </span>
+        </h2>
+        <div id="showtime-info" class="hidden">
+            <div class="info-item"><strong id="info-movie">—</strong>Movie</div>
+            <div class="info-item"><strong id="info-time">—</strong>Showtime</div>
+            <div class="info-item"><strong id="info-price">—</strong>Price / seat</div>
+            <div class="info-item"><strong id="info-avail">—</strong>Available</div>
+        </div>
+        <div class="screen-bar">◀  S C R E E N  ▶</div>
+        <div id="seat-grid-wrap">
+            <div id="seat-container"></div>
+            <div class="seat-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>High quality (≥8.5)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Available (≥7.0)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#374151"></div>Standard</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Your selection</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Held by others</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--red);opacity:0.5"></div>Taken</div>
+            </div>
+        </div>
+        <div id="booking-bar">
+            <div id="selected-summary">No seats selected. <strong>Click a seat above to begin.</strong></div>
+            <div style="display:flex;gap:10px">
+                <button class="btn-reset"   onclick="confirmReset()">Reset All</button>
+                <button class="btn-confirm" onclick="openPaymentModal()">Confirm Booking</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- BOOKING HISTORY -->
+    <section id="history-section">
+        <h2 class="section-heading">My Booking History</h2>
+        <div id="booking-list"></div>
+    </section>
+
+</div>
+</section>
+
+<!-- PAYMENT MODAL -->
+<div id="payment-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <h3>CONFIRM BOOKING</h3>
+        <div class="modal-row"><span class="label">Movie</span>        <span class="value" id="modal-movie">—</span></div>
+        <div class="modal-row"><span class="label">Showtime</span>     <span class="value" id="modal-time">—</span></div>
+        <div class="modal-row"><span class="label">Seats</span>        <span class="value" id="modal-seats">—</span></div>
+        <div class="modal-row"><span class="label">Price / seat</span> <span class="value" id="modal-price">—</span></div>
+        <div class="modal-total"><span>Total</span><span id="modal-total">—</span></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
+            <button class="btn-pay"    id="pay-btn" onclick="handlePayment()">Pay with Paystack</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// GLOBAL STATE
+// ══════════════════════════════════════════════════
+const API = 'http://127.0.0.1:5000';
+
+const state = {
+    currentUser:     null,   // { user_id, username, avatar_colour }
+    recommendations: [],     // array from /api/recommendations
+    selectedMovie:   null,   // one entry from recommendations
+    allSeats:        [],     // array from /api/seats
+    selectedSeatIds: [],     // seat IDs the user has locked/selected
+    paymentRef:      null,
+};
+
+// ══════════════════════════════════════════════════
+// THEME  (FR xii)
+// ══════════════════════════════════════════════════
+(function initTheme() {
+    const saved     = localStorage.getItem('cineselect-theme');
+    const preferred = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', saved || preferred);
+})();
+
+function toggleTheme() {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('cineselect-theme', next);
+}
+
+// ══════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════
+let _toastTimer = null;
+function showToast(msg, type = 'info') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className   = `show ${type}`;
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { el.className = ''; }, 3500);
+}
+
+// ══════════════════════════════════════════════════
+// HERO SLIDER
+// ══════════════════════════════════════════════════
+let currentSlide   = 0;
+let _sliderTimer   = null;
+const sliderTitles = ['Inception', 'Interstellar', 'The Dark Knight'];
+
+function goToSlide(idx) {
+    currentSlide = idx;
+    document.getElementById('movie-slider').style.transform = `translateX(-${idx * 100}%)`;
+    document.getElementById('movie-title-display').textContent = sliderTitles[idx];
+    document.querySelectorAll('.slider-dot').forEach((d, i) =>
+        d.classList.toggle('active', i === idx));
+}
+
+function startSlider() {
+    clearInterval(_sliderTimer);
+    _sliderTimer = setInterval(() => goToSlide((currentSlide + 1) % 3), 4000);
+}
+
+// ══════════════════════════════════════════════════
+// AUTH TABS
+// ══════════════════════════════════════════════════
+function switchAuthTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach((t, i) =>
+        t.classList.toggle('active', (i === 0) === (tab === 'login')));
+    document.getElementById('login-form').classList.toggle('hidden',    tab !== 'login');
+    document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+    document.getElementById('auth-error').classList.add('hidden');
+}
+function showAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════════════
+// P1 — LOGIN  →  POST /api/login
+// ══════════════════════════════════════════════════
+function handleLogin() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!username || !password) { showAuthError('Please fill in both fields.'); return; }
+
+    fetch(`${API}/api/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    })
+    .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+    .then(({ ok, data }) => {
+        if (!ok) { showAuthError(data.message || 'Login failed.'); return; }
+        state.currentUser = data;
+        document.getElementById('display-user').textContent = data.username;
+        document.getElementById('user-greeting').classList.remove('hidden');
+        document.getElementById('auth-section').classList.add('hidden');
+        document.getElementById('app-section').classList.remove('hidden');
+        startSlider();
+        loadRecommendations();
+        loadBookingHistory();
+    })
+    .catch(() => showAuthError('Cannot reach server. Is Flask running on port 5000?'));
+}
+
+// ══════════════════════════════════════════════════
+// P1 — REGISTER  →  POST /api/register
+// ══════════════════════════════════════════════════
+function handleRegister() {
+    const username = document.getElementById('reg-username').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!username || !email || !password) { showAuthError('All fields are required.'); return; }
+
+    fetch(`${API}/api/register`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+    })
+    .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+    .then(({ ok, data }) => {
+        if (!ok) { showAuthError(data.message || 'Registration failed.'); return; }
+        showToast('Account created! You can now log in.', 'success');
+        switchAuthTab('login');
+        document.getElementById('login-username').value = username;
+    })
+    .catch(() => showAuthError('Cannot reach server.'));
+}
+
+// ══════════════════════════════════════════════════
+// P2 — RECOMMENDATIONS  →  GET /api/recommendations
+// Renders all 6 Chapter 3 signals as score bars
+// ══════════════════════════════════════════════════
+function loadRecommendations() {
+    document.getElementById('reco-grid').innerHTML =
+        '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
+
+    const today = new Date().toISOString().split('T')[0];
+    fetch(`${API}/api/recommendations?user_id=${state.currentUser.user_id}&date=${today}`)
+        .then(r => r.json())
+        .then(data => { state.recommendations = data; renderRecommendations(data); })
+        .catch(() => {
+            document.getElementById('reco-grid').innerHTML =
+                '<p style="color:var(--text-secondary);padding:20px">Could not load recommendations.</p>';
+        });
+}
+
+// Signal max-point values for bar width calculation
+const SIGNAL_MAX = {
+    genre_match: 40, seat_availability: 25, seat_quality: 15,
+    showtime_proximity: 10, collaborative: 10, rating_bonus: 5
+};
+
+function renderRecommendations(movies) {
+    const grid = document.getElementById('reco-grid');
+    grid.innerHTML = '';
+
+    if (!movies.length) {
+        grid.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No movies available for today.</p>';
+        return;
+    }
+
+    movies.forEach((movie, idx) => {
+        const bd = movie.score_breakdown;
+
+        const barsHtml = [
+            { key:'genre_match',        label:'Genre match',  cls:'genre'   },
+            { key:'seat_availability',  label:'Availability', cls:'avail'   },
+            { key:'seat_quality',       label:'Seat quality', cls:'quality' },
+            { key:'showtime_proximity', label:'Proximity',    cls:'prox'    },
+            { key:'collaborative',      label:'Collab',       cls:'collab'  },
+            { key:'rating_bonus',       label:'Rating',       cls:'rating'  },
+        ].map(b => {
+            const pct = Math.round((bd[b.key] / SIGNAL_MAX[b.key]) * 100);
+            return `<div class="score-bar-row">
+                <span class="score-bar-label">${b.label}</span>
+                <div class="score-bar-track">
+                    <div class="score-bar-fill ${b.cls}" style="width:${pct}%"></div>
+                </div>
+                <span class="score-bar-val">${bd[b.key]}</span>
+            </div>`;
+        }).join('');
+
+        const card = document.createElement('div');
+        card.className = 'movie-card';
+        card.style.cssText = `animation:fadeUp 0.4s ease ${idx * 0.07}s both`;
+        card.innerHTML = `
+            <div class="movie-card-top">
+                ${movie.poster_url
+                    ? `<img src="${movie.poster_url}" alt="${movie.title}" loading="lazy">`
+                    : `<div class="no-poster">${movie.title.substring(0,2).toUpperCase()}</div>`}
+                <div class="score-badge">${movie.recommendation_score}</div>
+            </div>
+            <div class="movie-card-body">
+                <h3 title="${movie.title}">${movie.title}</h3>
+                <div class="movie-meta">
+                    <span>${movie.genre || '—'}</span>
+                    <span>${movie.duration ? movie.duration + ' min' : ''}</span>
+                    <span>${movie.age_rating || ''}</span>
+                    <span>⭐ ${movie.rating || '—'}</span>
+                </div>
+                <div class="score-bars">${barsHtml}</div>
+                <button class="select-movie-btn" id="select-btn-${idx}"
+                        onclick="selectMovie(${idx})">
+                    ${idx === 0 ? '✓ Top Pick — Select' : 'Select This Movie'}
+                </button>
+            </div>`;
+        grid.appendChild(card);
+    });
+
+    // Auto-select top recommendation
+    if (movies.length) selectMovie(0);
+}
+
+// ══════════════════════════════════════════════════
+// MOVIE SELECTION  →  triggers seat map load
+// ══════════════════════════════════════════════════
+function selectMovie(idx) {
+    state.selectedMovie   = state.recommendations[idx];
+    state.selectedSeatIds = [];
+
+    document.querySelectorAll('.movie-card').forEach((c, i) =>
+        c.classList.toggle('selected-movie', i === idx));
+    document.querySelectorAll('.select-movie-btn').forEach((b, i) => {
+        b.textContent = i === idx ? '✓ Selected' : 'Select This Movie';
+        b.classList.toggle('active', i === idx);
+    });
+
+    const m = state.selectedMovie;
+    document.getElementById('seat-section-subtitle').textContent = `— ${m.title}`;
+    document.getElementById('info-movie').textContent  = m.title;
+    document.getElementById('info-time').textContent   = m.showtime_time;
+    document.getElementById('info-price').textContent  = `₦${(m.showtime_price || 0).toLocaleString()}`;
+    document.getElementById('showtime-info').classList.remove('hidden');
+
+    loadSeats(m.showtime_id);
+}
+
+// ══════════════════════════════════════════════════
+// P3 — SEAT MAP  →  GET /api/seats?showtime_id=&user_id=
+// Returns 4-state status per seat
+// ══════════════════════════════════════════════════
+function loadSeats(showtimeId) {
+    document.getElementById('seat-container').innerHTML =
+        `<p style="color:var(--text-secondary);font-size:13px;padding:20px;grid-column:1/-1">Loading seats…</p>`;
+
+    fetch(`${API}/api/seats?showtime_id=${showtimeId}&user_id=${state.currentUser.user_id}`)
+        .then(r => r.json())
+        .then(data => {
+            state.allSeats        = data;
+            state.selectedSeatIds = [];
+            renderSeats();
+        })
+        .catch(() => showToast('Could not load seat map.', 'error'));
+}
+
+function renderSeats() {
+    const container = document.getElementById('seat-container');
+    container.innerHTML = '';
+    let available = 0;
+
+    state.allSeats.forEach(seat => {
+        const btn = document.createElement('button');
+        btn.textContent  = seat.seat_label;
+        btn.className    = 'seat-btn';
+        btn.dataset.id   = seat.id;
+        btn.title        = `${seat.seat_label} · Quality: ${seat.quality_score}/10`;
+
+        // Chapter 3 FR vi — 4 visual states
+        switch (seat.status) {
+            case 'taken':
+                btn.classList.add('taken');
+                btn.disabled = true;
+                break;
+            case 'locked_by_other':
+                btn.classList.add('locked-other');
+                btn.disabled = true;
+                btn.title += ' (held by another user)';
+                break;
+            case 'locked_by_you':
+                btn.classList.add('locked-you');
+                btn.onclick = () => toggleSeat(seat, btn);
+                break;
+            default: // 'available'
+                available++;
+                btn.classList.add(
+                    seat.quality_score >= 8.5 ? 'quality-high' :
+                    seat.quality_score >= 7.0 ? 'quality-mid'  : 'quality-low'
+                );
+                btn.onclick = () => toggleSeat(seat, btn);
+        }
+        container.appendChild(btn);
+    });
+
+    document.getElementById('info-avail').textContent = available;
+    updateSummary();
+}
+
+// ══════════════════════════════════════════════════
+// SEAT TOGGLE + LOCK  →  POST /api/lock-seat|unlock-seat
+// Chapter 3 FR vii: 5-minute in-memory lock
+// ══════════════════════════════════════════════════
+function toggleSeat(seat, btn) {
+    const idx = state.selectedSeatIds.indexOf(seat.id);
+
+    if (idx !== -1) {
+        // Deselect — unlock server-side
+        state.selectedSeatIds.splice(idx, 1);
+        btn.classList.remove('selected', 'locked-you');
+        btn.classList.add(
+            seat.quality_score >= 8.5 ? 'quality-high' :
+            seat.quality_score >= 7.0 ? 'quality-mid'  : 'quality-low'
+        );
+        fetch(`${API}/api/unlock-seat`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                showtime_id: state.selectedMovie.showtime_id,
+                seat_id: seat.id, user_id: state.currentUser.user_id
+            })
+        }).catch(() => {});
+        updateSummary();
+    } else {
+        // Select — lock server-side first
+        fetch(`${API}/api/lock-seat`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                showtime_id: state.selectedMovie.showtime_id,
+                seat_id: seat.id, user_id: state.currentUser.user_id
+            })
+        })
+        .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+        .then(({ ok, data }) => {
+            if (!ok) {
+                showToast(data.message || 'Seat could not be locked.', 'error');
+                loadSeats(state.selectedMovie.showtime_id); // refresh to show amber seat
+                return;
+            }
+            state.selectedSeatIds.push(seat.id);
+            btn.classList.remove('quality-high', 'quality-mid', 'quality-low', 'locked-you');
+            btn.classList.add('selected');
+            updateSummary();
+        })
+        .catch(() => showToast('Server error.', 'error'));
+    }
+}
+
+function updateSummary() {
+    const n     = state.selectedSeatIds.length;
+    const el    = document.getElementById('selected-summary');
+    const price = state.selectedMovie?.showtime_price || 0;
+    el.innerHTML = n === 0
+        ? 'No seats selected. <strong>Click a seat above to begin.</strong>'
+        : `<strong>${n} seat${n > 1 ? 's' : ''} selected</strong> · Total: <strong>₦${(price * n).toLocaleString()}</strong>`;
+}
+
+// ══════════════════════════════════════════════════
+// PAYMENT MODAL
+// ══════════════════════════════════════════════════
+function openPaymentModal() {
+    if (!state.selectedSeatIds.length) { showToast('Select at least one seat first.', 'error'); return; }
+    if (!state.selectedMovie)          { showToast('Please select a movie first.',    'error'); return; }
+
+    const m      = state.selectedMovie;
+    const n      = state.selectedSeatIds.length;
+    const price  = m.showtime_price || 0;
+    const labels = state.selectedSeatIds
+        .map(id => state.allSeats.find(s => s.id === id)?.seat_label || id)
+        .join(', ');
+
+    document.getElementById('modal-movie').textContent = m.title;
+    document.getElementById('modal-time').textContent  = m.showtime_time;
+    document.getElementById('modal-seats').textContent = labels;
+    document.getElementById('modal-price').textContent = `₦${price.toLocaleString()}`;
+    document.getElementById('modal-total').lastChild.textContent = `₦${(price * n).toLocaleString()}`;
+    document.getElementById('payment-modal').classList.remove('hidden');
+}
+function closePaymentModal() {
+    document.getElementById('payment-modal').classList.add('hidden');
+}
+
+// ══════════════════════════════════════════════════
+// P4 — PAYMENT  →  POST /api/payment/initialize then /verify
+// Demo mode active when no Paystack key is set in .env
+// P5 (Preference Learning) fires automatically inside /verify
+// ══════════════════════════════════════════════════
+function handlePayment() {
+    const btn = document.getElementById('pay-btn');
+    btn.disabled = true; btn.textContent = 'Processing…';
+    const m = state.selectedMovie;
+
+    fetch(`${API}/api/payment/initialize`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user_id:     state.currentUser.user_id,
+            showtime_id: m.showtime_id,
+            seat_ids:    state.selectedSeatIds,
+            email:       `user${state.currentUser.user_id}@cineselect.ng`
+        })
+    })
+    .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+    .then(({ ok, data }) => {
+        if (!ok) throw new Error(data.message || 'Payment init failed.');
+        state.paymentRef = data.reference;
+
+        if (data.demo_mode) {
+            // Demo mode: no Paystack key configured — skip to verify immediately
+            return verifyPayment(data.reference);
+        }
+        // Live mode: open Paystack redirect
+        window.open(data.authorization_url, '_blank');
+        setTimeout(() => verifyPayment(data.reference), 6000);
+    })
+    .catch(err => {
+        showToast(err.message, 'error');
+        btn.disabled = false; btn.textContent = 'Pay with Paystack';
+    });
+}
+
+function verifyPayment(reference) {
+    const m = state.selectedMovie;
+    fetch(`${API}/api/payment/verify`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            reference,
+            user_id:     state.currentUser.user_id,
+            showtime_id: m.showtime_id,
+            seat_ids:    state.selectedSeatIds
+        })
+    })
+    .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+    .then(({ ok, data }) => {
+        closePaymentModal();
+        document.getElementById('pay-btn').disabled    = false;
+        document.getElementById('pay-btn').textContent = 'Pay with Paystack';
+
+        if (!ok) { showToast(data.message || 'Booking failed.', 'error'); return; }
+
+        showToast(`✓ Booking confirmed! Ref: ${data.booking_reference}`, 'success');
+        state.selectedSeatIds = [];
+
+        // Reload all — P5 already ran server-side, so reco scores will update
+        loadRecommendations();
+        loadSeats(m.showtime_id);
+        loadBookingHistory();
+    })
+    .catch(() => {
+        showToast('Verification error. Please try again.', 'error');
+        document.getElementById('pay-btn').disabled    = false;
+        document.getElementById('pay-btn').textContent = 'Pay with Paystack';
+    });
+}
+
+// ══════════════════════════════════════════════════
+// BOOKING HISTORY  →  GET /api/my-bookings/:id
+// New response shape: movie_title, show_date, seats[], booking_reference
+// ══════════════════════════════════════════════════
+function loadBookingHistory() {
+    if (!state.currentUser) return;
+    fetch(`${API}/api/my-bookings/${state.currentUser.user_id}`)
+        .then(r => r.json())
+        .then(data => {
+            const list = document.getElementById('booking-list');
+            list.innerHTML = '';
+            if (!data.length) {
+                list.innerHTML = '<p class="no-history">No bookings yet. Grab some seats!</p>';
+                return;
+            }
+            data.forEach(bk => {
+                const el = document.createElement('div');
+                el.className = 'booking-item';
+                const seats = Array.isArray(bk.seats) ? bk.seats.join(', ') : bk.seats || '—';
+                el.innerHTML = `
+                    <div>
+                        <div class="bk-title">${bk.movie_title}</div>
+                        <div class="bk-meta">${bk.show_date} · ${bk.showtime} · Seats: ${seats}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px">
+                        ${bk.total_amount_ngn
+                            ? `<span class="bk-amount">₦${bk.total_amount_ngn.toLocaleString()}</span>` : ''}
+                        <span class="bk-ref">${bk.booking_reference}</span>
+                    </div>`;
+                list.appendChild(el);
+            });
+        })
+        .catch(() => {});
+}
+
+// ══════════════════════════════════════════════════
+// RESET  →  POST /api/reset
+// ══════════════════════════════════════════════════
+function confirmReset() {
+    if (!confirm('Clear ALL bookings and seat locks?')) return;
+    fetch(`${API}/api/reset`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+            showToast(d.message, 'success');
+            state.selectedSeatIds = [];
+            if (state.selectedMovie) loadSeats(state.selectedMovie.showtime_id);
+            loadRecommendations();
+            loadBookingHistory();
+        })
+        .catch(() => showToast('Reset failed.', 'error'));
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !document.getElementById('auth-section').classList.contains('hidden')) {
+        document.querySelector('.auth-tab.active')?.textContent === 'Login'
+            ? handleLogin() : handleRegister();
+    }
+    if (e.key === 'Escape') closePaymentModal();
+});
+</script>
+</body>
+</html>

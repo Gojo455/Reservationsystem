@@ -1,0 +1,129 @@
+/* ==========================================
+   CINEMA SEATING STYLE SHEET (style.css)
+   ========================================== */
+
+/* 1. GLOBAL LAYOUT */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0f172a; /* Solid Dark Navy */
+    color: #ffffff;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Glassmorphism containers */
+#login-container, #theater-section {
+    background: rgba(30, 41, 59, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 30px;
+    margin-top: 20px;
+    width: 90%;
+    max-width: 850px;
+}
+
+/* 2. TEXT & HEADERS */
+h1 {
+    font-size: 24px;
+    color: #f1c40f; /* Gold for main title */
+    margin: 20px 0;
+}
+
+h3 {
+    font-size: 18px;
+    color: #ffffff;
+    margin-bottom: 10px;
+}
+
+/* 3. SEAT GRID - THE CORE FIX */
+#seat-container {
+    display: grid;
+    /* We use fixed pixel sizes to ensure they don't disappear */
+    grid-template-columns: repeat(8, 45px);
+    gap: 12px;
+    justify-content: center; /* Centers the grid */
+    margin: 30px auto;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+}
+
+/* 4. SEAT BUTTON BASE */
+.seat-btn {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+.seat-btn:hover:not(.occupied) {
+    transform: scale(1.1);
+    filter: brightness(1.2);
+}
+
+/* 5. TIERED RANKING COLORS (Process P2) */
+
+/* TIER 1: HIGH QUALITY (Gold) */
+.recommended {
+    background-color: #FFD700 !important;
+    border: 2px solid #FFA500 !important;
+    color: #000 !important;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+/* TIER 2: NORMAL (Green) */
+.available {
+    background-color: #2ecc71 !important;
+    border: 1px solid #27ae60 !important;
+    color: #fff !important;
+}
+
+/* TIER 3: UNDESIRABLE (Brown) - FIXED: No longer repeated */
+.undesirable {
+    background-color: #5C4033 !important;
+    border: 1px solid #3d2b22 !important;
+    color: #ffffff !important;
+    opacity: 0.8;
+}
+
+/* 6. STATUS COLORS */
+.occupied {
+    background-color: #e74c3c !important; /* Red */
+    cursor: not-allowed;
+    opacity: 0.3;
+    border: none !important;
+}
+
+.selected {
+    background-color: #3498db !important; /* Blue */
+    border: 3px solid #ffffff !important;
+    transform: scale(1.15);
+}
+
+/* 7. ACTION BUTTONS */
+#book-now-btn {
+    float: right;
+    padding: 12px 30px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+}
+
+#book-now-btn:hover {
+    background-color: #0056b3;
+}
