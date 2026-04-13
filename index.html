@@ -16,11 +16,12 @@
     <div id="topbar-right">
         <span id="user-greeting" class="hidden">Welcome, <strong id="display-user"></strong></span>
         <button id="logout-btn" class="hidden" onclick="handleLogout()">Logout</button>
+        <button id="admin-btn"  class="hidden" onclick="toggleAdminPanel()">⚙ Admin</button>
         <button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle dark/light mode"></button>
     </div>
 </header>
 
-<!-- ════ P1 — AUTH ════ -->
+
 <section id="auth-section">
     <div class="auth-box">
         <h2>CINESELECT</h2>
@@ -80,7 +81,7 @@
     <!-- P2 — RECOMMENDATIONS -->
     <section id="reco-section">
         <h2 class="section-heading">
-            Recommended For You <span class="badge"> USING HYBRID RECOMMENDER · 6 SIGNALS</span>
+            Recommended For You <span class="badge">Powered By Hybrid Recommender · 6 SIGNALS</span>
         </h2>
         <div id="reco-grid" class="reco-grid">
             <div class="skeleton"></div>
@@ -117,7 +118,7 @@
             </div>
         </div>
         <div id="booking-bar">
-            <div id="selected-summary">No seats selected. <strong>Click a seat above to begin.</strong></div>
+            <div id="selected-summary">No seats selected. <strong>Please click a seat above to begin.</strong></div>
             <div style="display:flex;gap:10px">
                 <button class="btn-reset"   onclick="confirmReset()">Reset All</button>
                 <button class="btn-confirm" onclick="openPaymentModal()">Confirm Booking</button>
@@ -131,6 +132,114 @@
         <div id="booking-list"></div>
     </section>
 
+</div>
+</section>
+
+<!-- ════ ADMIN PANEL (visible only when is_admin === true) ════ -->
+<section id="admin-section" class="hidden">
+<div class="page">
+
+    <h2 class="section-heading">Admin Panel <span class="badge">RESTRICTED</span></h2>
+
+    <div class="admin-grid">
+
+        <!-- Left column: Add Movie form -->
+        <div class="admin-card">
+            <h3 class="admin-card-title">Add New Movie</h3>
+
+            <div class="admin-form-grid">
+                <div class="form-group">
+                    <label>Title *</label>
+                    <input type="text" id="a-title" placeholder="e.g. Oppenheimer">
+                </div>
+                <div class="form-group">
+                    <label>Genre * <span class="field-hint">(comma-separated)</span></label>
+                    <input type="text" id="a-genre" placeholder="e.g. Drama,History">
+                </div>
+                <div class="form-group">
+                    <label>Director</label>
+                    <input type="text" id="a-director" placeholder="e.g. Christopher Nolan">
+                </div>
+                <div class="form-group">
+                    <label>Cast</label>
+                    <input type="text" id="a-cast" placeholder="e.g. Cillian Murphy, Emily Blunt">
+                </div>
+                <div class="form-group">
+                    <label>Duration (minutes) *</label>
+                    <input type="number" id="a-duration" placeholder="e.g. 180" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Rating (0–10) *</label>
+                    <input type="number" id="a-rating" placeholder="e.g. 8.3" step="0.1" min="0" max="10">
+                </div>
+                <div class="form-group">
+                    <label>Age Rating *</label>
+                    <select id="a-age-rating">
+                        <option value="">Select…</option>
+                        <option>G</option><option>PG</option>
+                        <option>PG-13</option><option>R</option>
+                        <option>NC-17</option><option>18+</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Poster URL <span class="field-hint">(optional)</span></label>
+                    <input type="url" id="a-poster" placeholder="https://…">
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                    <label>Description</label>
+                    <textarea id="a-description" rows="3" placeholder="Brief synopsis…"></textarea>
+                </div>
+            </div>
+
+            <div class="admin-divider">Showtime Details</div>
+
+            <div class="admin-form-grid">
+                <div class="form-group">
+                    <label>Hall *</label>
+                    <select id="a-hall">
+                        <option value="">Loading halls…</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="a-date">
+                </div>
+                <div class="form-group">
+                    <label>Time *</label>
+                    <input type="time" id="a-time" value="18:00">
+                </div>
+                <div class="form-group">
+                    <label>Ticket Price (₦) *</label>
+                    <input type="number" id="a-price" placeholder="e.g. 3000" min="0">
+                </div>
+                <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:22px">
+                    <input type="checkbox" id="a-featured" style="width:auto">
+                    <label for="a-featured" style="text-transform:none;font-size:14px">Mark as Featured</label>
+                </div>
+                <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:22px">
+                    <input type="checkbox" id="a-hot" style="width:auto">
+                    <label for="a-hot" style="text-transform:none;font-size:14px">Mark as Hot</label>
+                </div>
+            </div>
+
+            <div id="admin-form-error" class="auth-error hidden"></div>
+            <div id="admin-form-success" class="admin-success hidden"></div>
+
+            <button class="btn-primary" onclick="submitAddMovie()" style="margin-top:16px">
+                Add Movie + Showtime
+            </button>
+        </div>
+
+        <!-- Right column: Current movies list -->
+        <div class="admin-card">
+            <h3 class="admin-card-title">Current Movies</h3>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+                Click Delete to remove a movie and all its showtimes and seats.
+            </p>
+            <div id="admin-movie-list"></div>
+        </div>
+
+    </div>
 </div>
 </section>
 
@@ -154,9 +263,9 @@
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
-
+// ══════════════════════════════════════════════════
 // GLOBAL STATE
-
+// ══════════════════════════════════════════════════
 const API = 'http://127.0.0.1:5000';
 
 const state = {
@@ -175,9 +284,9 @@ let _countdownInterval = null;   // ticks every second to update countdown label
 let _sliderTimer       = null;
 let _toastTimer        = null;
 
-
+// ══════════════════════════════════════════════════
 // THEME  (FR xii)
-
+// ══════════════════════════════════════════════════
 (function initTheme() {
     const saved     = localStorage.getItem('cineselect-theme');
     const preferred = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
@@ -190,9 +299,9 @@ function toggleTheme() {
     localStorage.setItem('cineselect-theme', next);
 }
 
-
+// ══════════════════════════════════════════════════
 // TOAST
-
+// ══════════════════════════════════════════════════
 function showToast(msg, type) {
     type = type || 'info';
     const el = document.getElementById('toast');
@@ -202,8 +311,9 @@ function showToast(msg, type) {
     _toastTimer = setTimeout(function() { el.className = ''; }, 3500);
 }
 
+// ══════════════════════════════════════════════════
 // HERO SLIDER
-
+// ══════════════════════════════════════════════════
 var currentSlide   = 0;
 var sliderTitles   = ['Inception', 'Interstellar', 'The Dark Knight'];
 
@@ -221,9 +331,9 @@ function startSlider() {
     _sliderTimer = setInterval(function() { goToSlide((currentSlide + 1) % 3); }, 4000);
 }
 
-
+// ══════════════════════════════════════════════════
 // AUTH TABS
-
+// ══════════════════════════════════════════════════
 function switchAuthTab(tab) {
     document.querySelectorAll('.auth-tab').forEach(function(t, i) {
         t.classList.toggle('active', (i === 0) === (tab === 'login'));
@@ -239,9 +349,9 @@ function showAuthError(msg) {
     el.classList.remove('hidden');
 }
 
-
+// ══════════════════════════════════════════════════
 // P1 — LOGIN  →  POST /api/login
-
+// ══════════════════════════════════════════════════
 function handleLogin() {
     var username = document.getElementById('login-username').value.trim();
     var password = document.getElementById('login-password').value;
@@ -258,6 +368,9 @@ function handleLogin() {
         document.getElementById('display-user').textContent = res.data.username;
         document.getElementById('user-greeting').classList.remove('hidden');
         document.getElementById('logout-btn').classList.remove('hidden');
+        if (res.data.is_admin) {
+            document.getElementById('admin-btn').classList.remove('hidden');
+        }
         document.getElementById('auth-section').classList.add('hidden');
         document.getElementById('app-section').classList.remove('hidden');
         startSlider();
@@ -313,6 +426,9 @@ function handleLogout() {
     document.getElementById('auth-section').classList.remove('hidden');
     document.getElementById('user-greeting').classList.add('hidden');
     document.getElementById('logout-btn').classList.add('hidden');
+    document.getElementById('admin-btn').classList.add('hidden');
+    document.getElementById('admin-section').classList.add('hidden');
+    document.getElementById('app-section').classList.remove('hidden');
     document.getElementById('login-username').value = '';
     document.getElementById('login-password').value = '';
     document.getElementById('auth-error').classList.add('hidden');
@@ -866,6 +982,252 @@ function confirmReset() {
             loadBookingHistory();
         })
         .catch(function() { showToast('Reset failed.', 'error'); });
+}
+
+
+// ══════════════════════════════════════════════════
+// ADMIN PANEL
+//
+// How it works end-to-end:
+//
+// 1. Login response includes is_admin: true/false
+// 2. If true, the ⚙ Admin button appears in the topbar
+// 3. Clicking it toggles the admin panel section visible/hidden
+// 4. On open, loadAdminData() fires two API calls:
+//      GET /api/admin/halls       → populates the hall <select>
+//      GET /api/admin/movies      → populates the movie list
+// 5. submitAddMovie() collects all form values, calls
+//      POST /api/admin/add-movie  → creates Movie + Showtime + Seats
+// 6. adminDeleteMovie() calls
+//      DELETE /api/admin/delete-movie/:id → removes everything
+// 7. On success, the movie list refreshes automatically
+// ══════════════════════════════════════════════════
+
+function toggleAdminPanel() {
+    var adminSection = document.getElementById('admin-section');
+    var appSection   = document.getElementById('app-section');
+    var adminBtn     = document.getElementById('admin-btn');
+    var isOpen       = !adminSection.classList.contains('hidden');
+
+    if (isOpen) {
+        adminSection.classList.add('hidden');
+        appSection.classList.remove('hidden');
+        adminBtn.classList.remove('active');
+        adminBtn.textContent = '⚙ Admin';
+    } else {
+        adminSection.classList.remove('hidden');
+        appSection.classList.add('hidden');
+        adminBtn.classList.add('active');
+        adminBtn.textContent = '✕ Close Admin';
+        loadAdminData();
+    }
+}
+
+function loadAdminData() {
+    var uid = state.currentUser.user_id;
+    loadAdminHalls(uid);
+    loadAdminMovies(uid);
+    // Set today's date as default for the date picker
+    document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
+}
+
+// ── Populate the hall dropdown ──────────────────────────────────────────────
+// This is important to understand: we fetch halls from the server instead of
+// hardcoding them. That way if someone adds a new hall to the database later,
+// the form automatically shows it without any code changes.
+function loadAdminHalls(uid) {
+    fetch(API + '/api/admin/halls?user_id=' + uid)
+        .then(function(r) { return r.json(); })
+        .then(function(halls) {
+            var sel = document.getElementById('a-hall');
+            sel.innerHTML = '';
+            if (!halls.length) {
+                sel.innerHTML = '<option value="">No halls found</option>';
+                return;
+            }
+            halls.forEach(function(h) {
+                var opt = document.createElement('option');
+                opt.value       = h.id;
+                opt.textContent = h.cinema + ' — ' + h.name +
+                                  ' (' + h.rows + '×' + h.columns + ' seats)';
+                sel.appendChild(opt);
+            });
+        })
+        .catch(function() {
+            document.getElementById('a-hall').innerHTML =
+                '<option value="">Could not load halls</option>';
+        });
+}
+
+// ── Populate the current movies list ───────────────────────────────────────
+function loadAdminMovies(uid) {
+    var list = document.getElementById('admin-movie-list');
+    list.innerHTML = '<p style="color:var(--text-secondary);font-size:13px">Loading…</p>';
+
+    fetch(API + '/api/admin/movies?user_id=' + uid)
+        .then(function(r) { return r.json(); })
+        .then(function(movies) {
+            list.innerHTML = '';
+            if (!movies.length) {
+                list.innerHTML = '<p style="color:var(--text-secondary);font-size:13px">No movies yet.</p>';
+                return;
+            }
+            movies.forEach(function(m) {
+                var row = document.createElement('div');
+                row.className = 'admin-movie-row';
+                row.innerHTML =
+                    '<div class="admin-movie-info">' +
+                        '<div class="title">' + m.title + '</div>' +
+                        '<div class="meta">' + m.genre +
+                            ' · ' + m.showtime_count + ' showtime' +
+                            (m.showtime_count !== 1 ? 's' : '') +
+                            ' · ⭐ ' + m.rating +
+                        '</div>' +
+                    '</div>' +
+                    '<button class="btn-delete" data-id="' + m.id + '" data-title="' +
+                        m.title.replace(/"/g, '&quot;') + '" onclick="adminDeleteMovie(this)">Delete</button>';
+                list.appendChild(row);
+            });
+        })
+        .catch(function() {
+            list.innerHTML = '<p style="color:var(--red);font-size:13px">Could not load movies.</p>';
+        });
+}
+
+// ── Submit the Add Movie form ───────────────────────────────────────────────
+//
+// What happens when you click "Add Movie + Showtime":
+//
+// 1. We read every input value from the form.
+// 2. We validate that required fields are not empty.
+// 3. We send ONE POST request with all the data to /api/admin/add-movie.
+// 4. The backend creates the Movie, Showtime, and all Seats in one transaction.
+//    If any step fails, the whole thing is rolled back — no half-created data.
+// 5. On success: clear the form, reload the movie list, reload recommendations
+//    so the new movie appears immediately without a page refresh.
+//
+function submitAddMovie() {
+    var errEl = document.getElementById('admin-form-error');
+    var sucEl = document.getElementById('admin-form-success');
+    errEl.classList.add('hidden');
+    sucEl.classList.add('hidden');
+
+    // Collect values
+    var payload = {
+        user_id:     state.currentUser.user_id,
+        title:       document.getElementById('a-title').value.trim(),
+        genre:       document.getElementById('a-genre').value.trim(),
+        director:    document.getElementById('a-director').value.trim(),
+        cast_list:   document.getElementById('a-cast').value.trim(),
+        duration:    document.getElementById('a-duration').value,
+        rating:      document.getElementById('a-rating').value,
+        age_rating:  document.getElementById('a-age-rating').value,
+        poster_url:  document.getElementById('a-poster').value.trim(),
+        description: document.getElementById('a-description').value.trim(),
+        hall_id:     parseInt(document.getElementById('a-hall').value),
+        show_date:   document.getElementById('a-date').value,
+        show_time:   document.getElementById('a-time').value,
+        price:       document.getElementById('a-price').value,
+        is_featured: document.getElementById('a-featured').checked,
+        is_hot:      document.getElementById('a-hot').checked
+    };
+
+    // Client-side validation — gives instant feedback without a network round-trip
+    var required = {
+        title:     'Title',
+        genre:     'Genre',
+        duration:  'Duration',
+        rating:    'Rating',
+        age_rating:'Age Rating',
+        hall_id:   'Hall',
+        show_date: 'Date',
+        show_time: 'Time',
+        price:     'Price'
+    };
+    var missing = [];
+    Object.keys(required).forEach(function(k) {
+        if (!payload[k]) missing.push(required[k]);
+    });
+    if (missing.length) {
+        errEl.textContent = 'Required: ' + missing.join(', ');
+        errEl.classList.remove('hidden');
+        return;
+    }
+
+    var btn = document.querySelector('#admin-section .btn-primary');
+    btn.disabled    = true;
+    btn.textContent = 'Adding…';
+
+    fetch(API + '/api/admin/add-movie', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+        btn.disabled    = false;
+        btn.textContent = 'Add Movie + Showtime';
+
+        if (!res.ok) {
+            errEl.textContent = res.data.message || 'Failed to add movie.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+
+        // Success
+        sucEl.textContent = '✓ ' + res.data.movie_title + ' added! ' +
+                            res.data.seats_created + ' seats created for ' +
+                            res.data.show_date + ' at ' + res.data.show_time + '.';
+        sucEl.classList.remove('hidden');
+
+        // Clear the form
+        ['a-title','a-genre','a-director','a-cast','a-duration','a-rating',
+         'a-poster','a-description','a-price'].forEach(function(id) {
+            document.getElementById(id).value = '';
+        });
+        document.getElementById('a-age-rating').value = '';
+        document.getElementById('a-featured').checked = false;
+        document.getElementById('a-hot').checked      = false;
+
+        // Reload movie list so the new entry appears
+        loadAdminMovies(state.currentUser.user_id);
+
+        // Also reload recommendations on the main page so the new movie
+        // shows up immediately when the admin switches back
+        loadRecommendations();
+    })
+    .catch(function() {
+        btn.disabled    = false;
+        btn.textContent = 'Add Movie + Showtime';
+        errEl.textContent = 'Server error. Is Flask running?';
+        errEl.classList.remove('hidden');
+    });
+}
+
+// ── Delete a movie ──────────────────────────────────────────────────────────
+//
+// We use confirm() to prevent accidental deletions.
+// The DELETE request removes Movie, Showtimes, Seats, and Bookings
+// in the correct order to avoid foreign key constraint errors.
+//
+function adminDeleteMovie(btn) {
+    // Read movie id and title from the button's data attributes.
+    // This avoids any quote-escaping problems in the onclick HTML string.
+    var movieId    = btn.dataset.id;
+    var movieTitle = btn.dataset.title;
+    if (!confirm('Delete "' + movieTitle + '" and ALL its showtimes, seats, and bookings?')) return;
+
+    fetch(API + '/api/admin/delete-movie/' + movieId + '?user_id=' + state.currentUser.user_id, {
+        method: 'DELETE'
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+        if (!res.ok) { showToast(res.data.message || 'Delete failed.', 'error'); return; }
+        showToast('"' + movieTitle + '" deleted.', 'success');
+        loadAdminMovies(state.currentUser.user_id);
+        loadRecommendations();
+    })
+    .catch(function() { showToast('Server error during delete.', 'error'); });
 }
 
 // Keyboard shortcuts

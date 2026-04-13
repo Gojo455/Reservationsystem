@@ -26,13 +26,17 @@ def seed_database():
             tomorrow = today + timedelta(days=1)
 
             # ── 3. Users ───────────────────────────────────────────────────────
-            ayo = User(username="Ayo",  email="ayo@example.com",
+            # Admin account — is_admin=True unlocks the admin panel in the UI.
+            # The admin can add movies, showtimes and delete content without
+            # touching seed.py or the database directly.
+            admin = User(username="admin", email="admin@cineselect.ng",
+                         password=hash_password("admin123"), is_admin=True)
+
+            ayo  = User(username="Ayo",  email="ayo@example.com",
                         password=hash_password("password123"))
             temi = User(username="Temi", email="temi@example.com",
                         password=hash_password("temi456"))
-            adm1n_user = User(username="Admin", email="admin@control.com",
-                         password=hash_password("AdminisGod"))
-            db.session.add_all([ayo, temi])
+            db.session.add_all([admin, ayo, temi])
             db.session.commit()
 
             # ── 4. Preference profiles ─────────────────────────────────────────
@@ -48,7 +52,7 @@ def seed_database():
 
             # ── 5. Cinema + Hall ───────────────────────────────────────────────
             cinema = Cinema(name="Ayo's Grand Theatre",
-                            address="123 Lenge Avenue, Lagos")
+                            address="123 AI Avenue, Lagos")
             db.session.add(cinema)
             db.session.commit()
 
@@ -202,6 +206,7 @@ def seed_database():
                 print(f"    {s.time}  {m.title:<38} ₦{s.price:,.0f}")
 
             print(f"\n  USERS:")
+            print(f"    admin →  admin123       role:  ADMIN (can add/delete movies)")
             print(f"    Ayo   →  password123   prefs: Sci-Fi 0.6, Thriller 0.4")
             print(f"    Temi  →  temi456        prefs: Drama 0.8, Sci-Fi 0.2")
             print(f"\n  SEATS: {total_rows * total_cols} per showtime × {len(seeded_shows)} showtimes = {total_rows * total_cols * len(seeded_shows)} total")
