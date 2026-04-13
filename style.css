@@ -1,0 +1,1058 @@
+/* ============================================================
+   CINESELECT — style.css
+   All visual rules that back index.html.
+   The file is organised to mirror the page structure:
+   1. Reset & Root Variables
+   2. Scrollbar
+   3. Topbar
+   4. Auth Section
+   5. Hero Slider
+   6. Section Headings
+   7. Recommendation Cards (P2)
+   8. Seat Map (P3)
+   9. Booking Bar
+  10. Booking History
+  11. Payment Modal
+  12. Toast
+  13. Utility / Animations
+============================================================ */
+
+/* ── 1. Reset & Root Variables ─────────────────────────── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg-base:        #0a0c10;
+    --bg-surface:     #12151c;
+    --bg-card:        #1a1e28;
+    --bg-card-hover:  #1f2435;
+    --gold:           #f5c842;
+    --gold-dim:       #c9a230;
+    --green:          #22c55e;
+    --red:            #ef4444;
+    --blue:           #3b82f6;
+    --amber:          #f59e0b;
+    --text-primary:   #f0ece3;
+    --text-secondary: #8a8f9e;
+    --text-dim:       #4a4f5e;
+    --border:         rgba(255, 255, 255, 0.07);
+    --border-gold:    rgba(245, 200, 66, 0.3);
+    --shadow-card:    0 8px 32px rgba(0, 0, 0, 0.4);
+    --radius-sm:      6px;
+    --radius-md:      12px;
+    --radius-lg:      18px;
+    --font-display:   'Bebas Neue', sans-serif;
+    --font-body:      'DM Sans', sans-serif;
+}
+
+/* Light theme overrides (FR xii) */
+[data-theme="light"] {
+    --bg-base:        #f5f3ef;
+    --bg-surface:     #eceae4;
+    --bg-card:        #ffffff;
+    --bg-card-hover:  #f9f7f3;
+    --text-primary:   #1a1a2e;
+    --text-secondary: #5a5f72;
+    --text-dim:       #aaaaaa;
+    --border:         rgba(0, 0, 0, 0.08);
+    --shadow-card:    0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-body);
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── 2. Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar              { width: 6px; }
+::-webkit-scrollbar-track        { background: var(--bg-base); }
+::-webkit-scrollbar-thumb        { background: var(--text-dim); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--text-secondary); }
+
+/* ── 3. Topbar ─────────────────────────────────────────── */
+#topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10, 12, 16, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+[data-theme="light"] #topbar {
+    background: rgba(245, 243, 239, 0.92);
+}
+
+.logo {
+    font-family: var(--font-display);
+    font-size: 26px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    user-select: none;
+}
+
+.logo span {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-family: var(--font-body);
+    letter-spacing: 0;
+    margin-left: 8px;
+    font-weight: 300;
+}
+
+#topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+#user-greeting {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+#user-greeting strong {
+    color: var(--text-primary);
+}
+
+/* Logout button */
+#logout-btn {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: var(--red);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+#logout-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--red);
+}
+
+/* Theme toggle pill (FR xii) */
+#theme-toggle {
+    width: 36px;
+    height: 20px;
+    background: var(--text-dim);
+    border-radius: 10px;
+    border: none;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.25s;
+    flex-shrink: 0;
+}
+
+#theme-toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.25s;
+}
+
+[data-theme="light"] #theme-toggle {
+    background: var(--gold);
+}
+
+[data-theme="light"] #theme-toggle::after {
+    transform: translateX(16px);
+}
+
+/* ── Page wrapper ──────────────────────────────────────── */
+.page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+}
+
+/* ── 4. Auth Section ───────────────────────────────────── */
+#auth-section {
+    min-height: calc(100vh - 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.auth-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-card);
+    animation: fadeUp 0.4s ease;
+}
+
+.auth-box h2 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 6px;
+}
+
+.auth-box > p {
+    color: var(--text-secondary);
+    margin-bottom: 28px;
+    font-size: 14px;
+}
+
+/* Login / Register tab strip */
+.auth-tabs {
+    display: flex;
+    margin-bottom: 28px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: background 0.2s, color 0.2s;
+}
+
+.auth-tab.active {
+    background: var(--gold);
+    color: #000000;
+}
+
+/* Form fields */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    border-color: var(--gold-dim);
+}
+
+.form-group input::placeholder {
+    color: var(--text-dim);
+}
+
+/* Primary button */
+.btn-primary {
+    width: 100%;
+    padding: 13px;
+    background: var(--gold);
+    color: #000000;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.btn-primary:hover  { background: var(--gold-dim); }
+.btn-primary:active { transform: scale(0.99); }
+
+/* Inline error message */
+.auth-error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fc8c8c;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-top: 12px;
+}
+
+/* ── 5. Hero Slider ────────────────────────────────────── */
+#hero-slider-wrap {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    height: 260px;
+    margin-bottom: 40px;
+}
+
+#movie-slider {
+    display: flex;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#movie-slider img {
+    min-width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+#slider-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 60%);
+}
+
+#movie-title-display {
+    position: absolute;
+    bottom: 18px;
+    left: 24px;
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    pointer-events: none;
+}
+
+.slider-dots {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 6px;
+}
+
+.slider-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+}
+
+.slider-dot.active {
+    background: var(--gold);
+}
+
+/* ── 6. Section Headings ───────────────────────────────── */
+.section-heading {
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.section-heading .badge {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--gold);
+    color: #000000;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0;
+}
+
+/* ── 7. Recommendation Cards (P2) ──────────────────────── */
+#reco-section {
+    margin-bottom: 48px;
+}
+
+.reco-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 18px;
+}
+
+/* Loading skeleton */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--bg-card)      25%,
+        var(--bg-card-hover) 50%,
+        var(--bg-card)      75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: var(--radius-md);
+    height: 280px;
+}
+
+.movie-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.movie-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    border-color: var(--border-gold);
+}
+
+.movie-card.selected-movie {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px var(--gold);
+}
+
+.movie-card-top {
+    position: relative;
+    height: 130px;
+    background: var(--bg-surface);
+    overflow: hidden;
+}
+
+.movie-card-top img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s;
+}
+
+.movie-card:hover .movie-card-top img {
+    transform: scale(1.04);
+}
+
+.no-poster {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 36px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+}
+
+/* Recommendation score badge */
+.score-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+}
+
+.movie-card-body {
+    padding: 14px 16px 16px;
+}
+
+.movie-card-body h3 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 1px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.movie-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.movie-meta span + span::before {
+    content: ' · ';
+    color: var(--text-dim);
+}
+
+/* 6-signal score breakdown bars */
+.score-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.score-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+}
+
+.score-bar-label {
+    width: 90px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.score-bar-track {
+    flex: 1;
+    height: 4px;
+    background: var(--bg-surface);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.score-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    min-width: 2px;
+}
+
+/* Each signal gets its own colour so they are instantly distinguishable */
+.score-bar-fill.genre   { background: #a78bfa; }   /* purple  — Genre Match        */
+.score-bar-fill.avail   { background: var(--green); }  /* green   — Seat Availability  */
+.score-bar-fill.quality { background: var(--gold);  }  /* gold    — Seat Quality       */
+.score-bar-fill.prox    { background: var(--blue);  }  /* blue    — Showtime Proximity */
+.score-bar-fill.collab  { background: #f472b6; }   /* pink    — Collaborative      */
+.score-bar-fill.rating  { background: var(--amber); }  /* amber   — Rating Bonus       */
+
+.score-bar-val {
+    width: 28px;
+    text-align: right;
+    color: var(--text-dim);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Select movie button inside card */
+.select-movie-btn {
+    width: 100%;
+    padding: 9px;
+    background: transparent;
+    border: 1px solid var(--border-gold);
+    color: var(--gold);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.select-movie-btn:hover {
+    background: rgba(245, 200, 66, 0.1);
+}
+
+.select-movie-btn.active {
+    background: var(--gold);
+    color: #000000;
+    border-color: var(--gold);
+}
+
+/* ── 8. Seat Map (P3) ──────────────────────────────────── */
+#seat-section {
+    margin-bottom: 48px;
+}
+
+/* Showtime info bar */
+#showtime-info {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.info-item {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.info-item strong {
+    color: var(--text-primary);
+    display: block;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+/* Screen indicator bar */
+.screen-bar {
+    background: linear-gradient(to bottom, rgba(245, 200, 66, 0.15), transparent);
+    border-top: 2px solid rgba(245, 200, 66, 0.4);
+    text-align: center;
+    padding: 8px 0 20px;
+    font-size: 40px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+#seat-grid-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    padding: 24px 20px 28px;
+}
+
+/* Seat grid — 8 columns matching the 8-column hall */
+#seat-container {
+    display: grid;
+    grid-template-columns: repeat(8, 44px);
+    gap: 10px;
+    justify-content: center;
+}
+
+/* ── Seat button base ── */
+.seat-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px 8px 4px 4px;
+    border: 1px solid transparent;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000000;
+    position: relative;
+}
+
+/* Chair-leg shadow illusion */
+.seat-btn::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 4px;
+    right: 4px;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 0 0 3px 3px;
+}
+
+.seat-btn:hover:not(.taken):not(.locked-other) {
+    transform: scale(1.12) translateY(-2px);
+    filter: brightness(1.15);
+    z-index: 1;
+}
+
+/* ── Chapter 3 FR vi: 4 visual states ── */
+
+/* State 1 — Available, high quality (score ≥ 8.5): Gold */
+.seat-btn.quality-high {
+    background: var(--gold);
+    border-color: var(--gold-dim);
+    color: #000000;
+}
+
+/* State 2 — Available, mid quality (score ≥ 7.0): Green */
+.seat-btn.quality-mid {
+    background: var(--green);
+    border-color: #16a34a;
+    color: #ffffff;
+}
+
+/* State 3 — Available, lower quality: Dark steel */
+.seat-btn.quality-low {
+    background: #374151;
+    border-color: #4b5563;
+    color: var(--text-secondary);
+}
+
+/* State 4 — Selected by the current user: Blue */
+.seat-btn.selected {
+    background: var(--blue) !important;
+    border-color: #93c5fd !important;
+    color: #ffffff !important;
+    transform: scale(1.12) translateY(-2px);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+    z-index: 1;
+}
+
+/* State 5 — Locked by the current user (5-min in-memory lock): Pulsing blue */
+.seat-btn.locked-you {
+    background: var(--blue) !important;
+    border-color: #93c5fd !important;
+    color: #ffffff !important;
+    animation: pulse-lock 1.5s ease-in-out infinite;
+}
+
+/* State 6 — Locked by ANOTHER user: Amber, non-clickable */
+.seat-btn.locked-other {
+    background: var(--amber);
+    border-color: #d97706;
+    color: #000000;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+/* State 7 — Permanently taken/booked: Red, heavily faded */
+.seat-btn.taken {
+    background: var(--red);
+    border-color: #b91c1c;
+    color: #ffffff;
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+/* Seat legend */
+.seat-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* ── 9. Booking Bar ────────────────────────────────────── */
+#booking-bar {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 24px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+#selected-summary {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+#selected-summary strong {
+    color: var(--text-primary);
+}
+
+.btn-confirm {
+    padding: 12px 32px;
+    background: var(--green);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-confirm:hover { background: #16a34a; }
+
+.btn-reset {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: var(--red);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-reset:hover { background: rgba(239, 68, 68, 0.1); }
+
+/* ── 10. Booking History ───────────────────────────────── */
+#history-section {
+    margin-bottom: 60px;
+}
+
+.booking-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    transition: border-color 0.2s;
+}
+
+.booking-item:hover { border-color: var(--border-gold); }
+
+.bk-title {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.bk-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.bk-ref {
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    color: var(--gold);
+    background: rgba(245, 200, 66, 0.08);
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.bk-amount {
+    font-weight: 600;
+    color: var(--green);
+}
+
+.no-history {
+    color: var(--text-secondary);
+    font-size: 14px;
+    padding: 20px 0;
+}
+
+/* ── 11. Payment Modal ─────────────────────────────────── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 36px 32px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.modal-box h3 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 20px;
+}
+
+.modal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    gap: 12px;
+}
+
+.modal-row:last-of-type {
+    border-bottom: none;
+}
+
+.modal-row .label { color: var(--text-secondary); flex-shrink: 0; }
+.modal-row .value { color: var(--text-primary); font-weight: 500; text-align: right; }
+
+.modal-total {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gold);
+    padding: 14px 0 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.btn-cancel {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.btn-cancel:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+
+.btn-pay {
+    flex: 2;
+    padding: 12px;
+    background: var(--green);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-pay:hover    { background: #16a34a; }
+.btn-pay:disabled { background: var(--text-dim); cursor: wait; }
+
+/* ── 12. Toast Notification ────────────────────────────── */
+#toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 300;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 20px;
+    font-size: 14px;
+    box-shadow: var(--shadow-card);
+    max-width: 320px;
+    pointer-events: none;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+#toast.show    { transform: translateY(0); opacity: 1; }
+#toast.success { border-color: rgba(34,  197, 94,  0.4); color: var(--green); }
+#toast.error   { border-color: rgba(239, 68,  68,  0.4); color: var(--red);   }
+#toast.info    { border-color: var(--border-gold);        color: var(--gold);  }
+
+/* ── 13. Utility & Animations ──────────────────────────── */
+.hidden { display: none !important; }
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@keyframes pulse-lock {
+    0%,  100% { box-shadow: 0 0  6px rgba(59, 130, 246, 0.4); }
+    50%        { box-shadow: 0 0 14px rgba(59, 130, 246, 0.8); }
+}
+
+/* ── Responsive tweaks ─────────────────────────────────── */
+@media (max-width: 600px) {
+    #topbar { padding: 0 16px; }
+
+    .logo span { display: none; }
+
+    .page { padding: 20px 16px; }
+
+    .auth-box { padding: 32px 24px; }
+
+    #seat-container {
+        grid-template-columns: repeat(8, 36px);
+        gap: 7px;
+    }
+    .seat-btn { width: 36px; height: 36px; font-size: 10px; }
+
+    .reco-grid { grid-template-columns: 1fr; }
+
+    #booking-bar { flex-direction: column; align-items: stretch; }
+    #booking-bar > div { display: flex; gap: 10px; }
+    .btn-confirm, .btn-reset { flex: 1; }
+
+    .modal-box { padding: 28px 20px; }
+    .modal-actions { flex-direction: column; }
+
+    #toast { right: 16px; bottom: 16px; left: 16px; max-width: none; }
+}

@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineSelect — Real-Time Seat-Aware Recommender</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ════ TOPBAR ════ -->
+<header id="topbar">
+    <div class="logo">FINALYEARPROJECT <span>Seat-Aware Recommender</span></div>
+    <div id="topbar-right">
+        <span id="user-greeting" class="hidden">Welcome, <strong id="display-user"></strong></span>
+        <button id="logout-btn" class="hidden" onclick="handleLogout()">Logout</button>
+        <button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle dark/light mode"></button>
+    </div>
+</header>
+
+<!-- ════ P1 — AUTH ════ -->
+<section id="auth-section">
+    <div class="auth-box">
+        <h2>CINESELECT</h2>
+        <p>Real-time seat-aware movie recommendations</p>
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+            <button class="auth-tab"        onclick="switchAuthTab('register')">Register</button>
+        </div>
+        <div id="login-form">
+            <div class="form-group"><label>Username</label>
+                <input type="text"     id="login-username" placeholder="Enter username" autocomplete="username"></div>
+            <div class="form-group"><label>Password</label>
+                <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password"></div>
+            <button class="btn-primary" onclick="handleLogin()">Sign In</button>
+        </div>
+        <div id="register-form" class="hidden">
+            <div class="form-group"><label>Username</label>
+                <input type="text"     id="reg-username" placeholder="Choose a username"></div>
+            <div class="form-group"><label>Email</label>
+                <input type="email"    id="reg-email"    placeholder="your@email.com"></div>
+            <div class="form-group"><label>Password</label>
+                <input type="password" id="reg-password" placeholder="Create a password"></div>
+            <button class="btn-primary" onclick="handleRegister()">Create Account</button>
+        </div>
+        <div id="auth-error" class="auth-error hidden"></div>
+    </div>
+</section>
+
+<!-- ════ MAIN APP (post-login) ════ -->
+<section id="app-section" class="hidden">
+<div class="page">
+
+    <!-- Hero slider -->
+    <div id="hero-slider-wrap">
+        <div id="movie-slider">
+            <img src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?auto=format&fit=crop&w=1200&q=80" alt="Inception">
+            <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1200&q=80" alt="Interstellar">
+            <img src="https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80" alt="Cinema">
+        </div>
+        <div id="slider-overlay"></div>
+        <div id="movie-title-display">Inception</div>
+        <div class="slider-dots" id="slider-dots">
+            <div class="slider-dot active" onclick="goToSlide(0)"></div>
+            <div class="slider-dot"        onclick="goToSlide(1)"></div>
+            <div class="slider-dot"        onclick="goToSlide(2)"></div>
+        </div>
+    </div>
+
+    <!-- DATE PICKER — switch between today and tomorrow's screenings -->
+    <div id="date-picker-row" style="display:flex;align-items:center;gap:10px;margin-bottom:24px;flex-wrap:wrap;">
+        <span style="font-size:13px;color:var(--text-secondary);font-weight:500;letter-spacing:0.5px;text-transform:uppercase;">Showing for:</span>
+        <button class="date-btn active" id="date-btn-today"    onclick="switchDate('today')">Today</button>
+        <button class="date-btn"        id="date-btn-tomorrow" onclick="switchDate('tomorrow')">Tomorrow</button>
+        <span id="date-label" style="font-size:13px;color:var(--text-dim);margin-left:4px;"></span>
+    </div>
+
+    <!-- P2 — RECOMMENDATIONS -->
+    <section id="reco-section">
+        <h2 class="section-heading">
+            Recommended For You <span class="badge"> USING HYBRID RECOMMENDER · 6 SIGNALS</span>
+        </h2>
+        <div id="reco-grid" class="reco-grid">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+        </div>
+    </section>
+
+    <!-- P3 — SEAT MAP -->
+    <section id="seat-section">
+        <h2 class="section-heading">
+            Select Your Seats
+            <span id="seat-section-subtitle"
+                  style="font-family:var(--font-body);font-size:14px;color:var(--text-secondary);letter-spacing:0;font-weight:400">
+                — pick a movie above first
+            </span>
+        </h2>
+        <div id="showtime-info" class="hidden">
+            <div class="info-item"><strong id="info-movie">—</strong>Movie</div>
+            <div class="info-item"><strong id="info-time">—</strong>Showtime</div>
+            <div class="info-item"><strong id="info-price">—</strong>Price / seat</div>
+            <div class="info-item"><strong id="info-avail">—</strong>Available</div>
+        </div>
+        <div class="screen-bar">◀  S E A T M A P  ▶</div>
+        <div id="seat-grid-wrap">
+            <div id="seat-container"></div>
+            <div class="seat-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>High quality (≥8.5)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Available (≥7.0)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#374151"></div>Standard</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Your lock (5 min)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Held by others</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--red);opacity:0.5"></div>Taken</div>
+            </div>
+        </div>
+        <div id="booking-bar">
+            <div id="selected-summary">No seats selected. <strong>Click a seat above to begin.</strong></div>
+            <div style="display:flex;gap:10px">
+                <button class="btn-reset"   onclick="confirmReset()">Reset All</button>
+                <button class="btn-confirm" onclick="openPaymentModal()">Confirm Booking</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- BOOKING HISTORY -->
+    <section id="history-section">
+        <h2 class="section-heading">My Booking History</h2>
+        <div id="booking-list"></div>
+    </section>
+
+</div>
+</section>
+
+<!-- PAYMENT MODAL -->
+<div id="payment-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <h3>CONFIRM BOOKING</h3>
+        <div class="modal-row"><span class="label">Movie</span>        <span class="value" id="modal-movie">—</span></div>
+        <div class="modal-row"><span class="label">Showtime</span>     <span class="value" id="modal-time">—</span></div>
+        <div class="modal-row"><span class="label">Seats</span>        <span class="value" id="modal-seats">—</span></div>
+        <div class="modal-row"><span class="label">Price / seat</span> <span class="value" id="modal-price">—</span></div>
+        <div class="modal-total"><span>Total</span><span id="modal-total">—</span></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closePaymentModal()">Cancel</button>
+            <button class="btn-pay"    id="pay-btn" onclick="handlePayment()">Pay with Paystack</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+
+// GLOBAL STATE
+
+const API = 'http://127.0.0.1:5000';
+
+const state = {
+    currentUser:     null,   // { user_id, username }
+    recommendations: [],     // from /api/recommendations
+    selectedMovie:   null,   // one entry from recommendations
+    allSeats:        [],     // from /api/seats
+    selectedSeatIds: [],     // seat IDs the user has locked
+    selectedDate:    null,   // ISO string, today or tomorrow
+    paymentRef:      null,
+};
+
+// Timers
+let _seatRefreshTimer  = null;   // polls seat map every 15 s to catch expired locks
+let _countdownInterval = null;   // ticks every second to update countdown labels
+let _sliderTimer       = null;
+let _toastTimer        = null;
+
+
+// THEME  (FR xii)
+
+(function initTheme() {
+    const saved     = localStorage.getItem('cineselect-theme');
+    const preferred = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', saved || preferred);
+})();
+
+function toggleTheme() {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('cineselect-theme', next);
+}
+
+
+// TOAST
+
+function showToast(msg, type) {
+    type = type || 'info';
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className   = 'show ' + type;
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(function() { el.className = ''; }, 3500);
+}
+
+// HERO SLIDER
+
+var currentSlide   = 0;
+var sliderTitles   = ['Inception', 'Interstellar', 'The Dark Knight'];
+
+function goToSlide(idx) {
+    currentSlide = idx;
+    document.getElementById('movie-slider').style.transform = 'translateX(-' + (idx * 100) + '%)';
+    document.getElementById('movie-title-display').textContent = sliderTitles[idx];
+    document.querySelectorAll('.slider-dot').forEach(function(d, i) {
+        d.classList.toggle('active', i === idx);
+    });
+}
+
+function startSlider() {
+    clearInterval(_sliderTimer);
+    _sliderTimer = setInterval(function() { goToSlide((currentSlide + 1) % 3); }, 4000);
+}
+
+
+// AUTH TABS
+
+function switchAuthTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach(function(t, i) {
+        t.classList.toggle('active', (i === 0) === (tab === 'login'));
+    });
+    document.getElementById('login-form').classList.toggle('hidden',    tab !== 'login');
+    document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+    document.getElementById('auth-error').classList.add('hidden');
+}
+
+function showAuthError(msg) {
+    var el = document.getElementById('auth-error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+}
+
+
+// P1 — LOGIN  →  POST /api/login
+
+function handleLogin() {
+    var username = document.getElementById('login-username').value.trim();
+    var password = document.getElementById('login-password').value;
+    if (!username || !password) { showAuthError('Please fill in both fields.'); return; }
+
+    fetch(API + '/api/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username, password: password })
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+        if (!res.ok) { showAuthError(res.data.message || 'Login failed.'); return; }
+        state.currentUser = res.data;
+        document.getElementById('display-user').textContent = res.data.username;
+        document.getElementById('user-greeting').classList.remove('hidden');
+        document.getElementById('logout-btn').classList.remove('hidden');
+        document.getElementById('auth-section').classList.add('hidden');
+        document.getElementById('app-section').classList.remove('hidden');
+        startSlider();
+        initDatePicker();
+        loadRecommendations();
+        loadBookingHistory();
+    })
+    .catch(function() { showAuthError('Cannot reach server. Is Flask running on port 5000?'); });
+}
+
+// ══════════════════════════════════════════════════
+// P1 — REGISTER  →  POST /api/register
+// ══════════════════════════════════════════════════
+function handleRegister() {
+    var username = document.getElementById('reg-username').value.trim();
+    var email    = document.getElementById('reg-email').value.trim();
+    var password = document.getElementById('reg-password').value;
+    if (!username || !email || !password) { showAuthError('All fields are required.'); return; }
+
+    fetch(API + '/api/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username, email: email, password: password })
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+        if (!res.ok) { showAuthError(res.data.message || 'Registration failed.'); return; }
+        showToast('Account created! You can now log in.', 'success');
+        switchAuthTab('login');
+        document.getElementById('login-username').value = username;
+    })
+    .catch(function() { showAuthError('Cannot reach server.'); });
+}
+
+// ══════════════════════════════════════════════════
+// LOGOUT  — clears all state and returns to login
+// ══════════════════════════════════════════════════
+function handleLogout() {
+    // Stop all background timers
+    clearInterval(_seatRefreshTimer);
+    clearInterval(_countdownInterval);
+    clearInterval(_sliderTimer);
+
+    // Wipe state
+    state.currentUser     = null;
+    state.recommendations = [];
+    state.selectedMovie   = null;
+    state.allSeats        = [];
+    state.selectedSeatIds = [];
+    state.paymentRef      = null;
+
+    // Reset UI
+    document.getElementById('app-section').classList.add('hidden');
+    document.getElementById('auth-section').classList.remove('hidden');
+    document.getElementById('user-greeting').classList.add('hidden');
+    document.getElementById('logout-btn').classList.add('hidden');
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    document.getElementById('auth-error').classList.add('hidden');
+    document.getElementById('seat-container').innerHTML = '';
+    document.getElementById('booking-list').innerHTML   = '';
+    document.getElementById('reco-grid').innerHTML      = '';
+    document.getElementById('showtime-info').classList.add('hidden');
+    document.getElementById('selected-summary').innerHTML =
+        'No seats selected. <strong>Click a seat above to begin.</strong>';
+
+    showToast('Logged out successfully.', 'info');
+}
+
+// ══════════════════════════════════════════════════
+// P2 — RECOMMENDATIONS  →  GET /api/recommendations
+// ══════════════════════════════════════════════════
+function loadRecommendations() {
+    document.getElementById('reco-grid').innerHTML =
+        '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
+
+    var dateParam = state.selectedDate || new Date().toISOString().split('T')[0];
+    fetch(API + '/api/recommendations?user_id=' + state.currentUser.user_id + '&date=' + dateParam)
+        .then(function(r) { return r.json(); })
+        .then(function(data) { state.recommendations = data; renderRecommendations(data); })
+        .catch(function() {
+            document.getElementById('reco-grid').innerHTML =
+                '<p style="color:var(--text-secondary);padding:20px">Could not load recommendations.</p>';
+        });
+}
+
+// ══════════════════════════════════════════════════
+// DATE PICKER — today / tomorrow toggle
+// Calls loadRecommendations with the chosen date so
+// the engine only shows movies scheduled on that day.
+// ══════════════════════════════════════════════════
+function initDatePicker() {
+    var today    = new Date();
+    var tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+
+    var fmt = function(d) {
+        return d.getFullYear() + '-' +
+               String(d.getMonth() + 1).padStart(2, '0') + '-' +
+               String(d.getDate()).padStart(2, '0');
+    };
+
+    var displayFmt = function(d) {
+        return d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+    };
+
+    window._dateToday    = fmt(today);
+    window._dateTomorrow = fmt(tomorrow);
+
+    document.getElementById('date-btn-today').textContent    = 'Today · ' + displayFmt(today);
+    document.getElementById('date-btn-tomorrow').textContent = 'Tomorrow · ' + displayFmt(tomorrow);
+
+    state.selectedDate = window._dateToday;
+    document.getElementById('date-label').textContent = displayFmt(today);
+}
+
+function switchDate(which) {
+    var isToday = (which === 'today');
+    state.selectedDate = isToday ? window._dateToday : window._dateTomorrow;
+
+    document.getElementById('date-btn-today').classList.toggle('active',    isToday);
+    document.getElementById('date-btn-tomorrow').classList.toggle('active', !isToday);
+
+    // Reset selected movie and seat map — different date means different movies
+    state.selectedMovie   = null;
+    state.selectedSeatIds = [];
+    clearInterval(window._seatRefreshTimer);
+    clearInterval(window._countdownInterval);
+    document.getElementById('seat-container').innerHTML = '';
+    document.getElementById('showtime-info').classList.add('hidden');
+    document.getElementById('seat-section-subtitle').textContent = '— pick a movie above first';
+    document.getElementById('selected-summary').innerHTML =
+        'No seats selected. <strong>Click a seat above to begin.</strong>';
+
+    loadRecommendations();
+}
+
+var SIGNAL_MAX = {
+    genre_match: 40, seat_availability: 25, seat_quality: 15,
+    showtime_proximity: 10, collaborative: 10, rating_bonus: 5
+};
+
+function renderRecommendations(movies) {
+    var grid = document.getElementById('reco-grid');
+    grid.innerHTML = '';
+
+    if (!movies.length) {
+        grid.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No movies available for today.</p>';
+        return;
+    }
+
+    movies.forEach(function(movie, idx) {
+        var bd = movie.score_breakdown;
+        var signals = [
+            { key:'genre_match',        label:'Genre match',  cls:'genre'   },
+            { key:'seat_availability',  label:'Availability', cls:'avail'   },
+            { key:'seat_quality',       label:'Seat quality', cls:'quality' },
+            { key:'showtime_proximity', label:'Proximity',    cls:'prox'    },
+            { key:'collaborative',      label:'Collab',       cls:'collab'  },
+            { key:'rating_bonus',       label:'Rating',       cls:'rating'  },
+        ];
+        var barsHtml = signals.map(function(b) {
+            var pct = Math.round((bd[b.key] / SIGNAL_MAX[b.key]) * 100);
+            return '<div class="score-bar-row">' +
+                '<span class="score-bar-label">' + b.label + '</span>' +
+                '<div class="score-bar-track"><div class="score-bar-fill ' + b.cls + '" style="width:' + pct + '%"></div></div>' +
+                '<span class="score-bar-val">' + bd[b.key] + '</span>' +
+                '</div>';
+        }).join('');
+
+        var posterHtml = movie.poster_url
+            ? '<img src="' + movie.poster_url + '" alt="' + movie.title + '" loading="lazy">'
+            : '<div class="no-poster">' + movie.title.substring(0,2).toUpperCase() + '</div>';
+
+        var card = document.createElement('div');
+        card.className = 'movie-card';
+        card.style.cssText = 'animation:fadeUp 0.4s ease ' + (idx * 0.07) + 's both';
+        card.innerHTML =
+            '<div class="movie-card-top">' + posterHtml +
+                '<div class="score-badge">' + movie.recommendation_score + '</div>' +
+            '</div>' +
+            '<div class="movie-card-body">' +
+                '<h3 title="' + movie.title + '">' + movie.title + '</h3>' +
+                '<div class="movie-meta">' +
+                    '<span>' + (movie.genre || '—') + '</span>' +
+                    (movie.duration ? '<span>' + movie.duration + ' min</span>' : '') +
+                    (movie.age_rating ? '<span>' + movie.age_rating + '</span>' : '') +
+                    '<span>⭐ ' + (movie.rating || '—') + '</span>' +
+                '</div>' +
+                '<div class="score-bars">' + barsHtml + '</div>' +
+                '<button class="select-movie-btn" id="select-btn-' + idx + '" onclick="selectMovie(' + idx + ')">' +
+                    (idx === 0 ? '✓ Top Pick — Select' : 'Select This Movie') +
+                '</button>' +
+            '</div>';
+        grid.appendChild(card);
+    });
+
+    // Restore previously selected movie if the user already had one selected.
+    // This prevents the seat map from jumping back to index 0 after a booking
+    // triggers loadRecommendations() (Bug 3 fix).
+    if (movies.length) {
+        var prevShowtimeId = state.selectedMovie ? state.selectedMovie.showtime_id : null;
+        var restoreIdx = 0;
+        if (prevShowtimeId) {
+            // User already had a movie selected (post-booking reload).
+            // Find it in the refreshed list and restore silently — no seat reload.
+            var found = movies.findIndex(function(m) { return m.showtime_id === prevShowtimeId; });
+            if (found !== -1) restoreIdx = found;
+            selectMovieQuiet(restoreIdx);
+        } else {
+            // First load after login (or after a date switch that cleared the selection).
+            // Call the full selectMovie() so the seat map loads immediately.
+            selectMovie(restoreIdx);
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════
+// MOVIE SELECTION
+// ══════════════════════════════════════════════════
+// selectMovieQuiet: updates card highlight and state only.
+// Used when restoring a previously selected movie after recommendation reload.
+// Does NOT call loadSeats() — the seat map is already showing the right showtime.
+function selectMovieQuiet(idx) {
+    state.selectedMovie = state.recommendations[idx];
+    document.querySelectorAll('.movie-card').forEach(function(c, i) {
+        c.classList.toggle('selected-movie', i === idx);
+    });
+    document.querySelectorAll('.select-movie-btn').forEach(function(b, i) {
+        b.textContent = i === idx ? '✓ Selected' : 'Select This Movie';
+        b.classList.toggle('active', i === idx);
+    });
+}
+
+function selectMovie(idx) {
+    state.selectedMovie   = state.recommendations[idx];
+    state.selectedSeatIds = [];
+
+    document.querySelectorAll('.movie-card').forEach(function(c, i) {
+        c.classList.toggle('selected-movie', i === idx);
+    });
+    document.querySelectorAll('.select-movie-btn').forEach(function(b, i) {
+        b.textContent = i === idx ? '✓ Selected' : 'Select This Movie';
+        b.classList.toggle('active', i === idx);
+    });
+
+    var m = state.selectedMovie;
+    document.getElementById('seat-section-subtitle').textContent = '— ' + m.title;
+    document.getElementById('info-movie').textContent = m.title;
+    document.getElementById('info-time').textContent  = m.showtime_time;
+    document.getElementById('info-price').textContent = '₦' + (m.showtime_price || 0).toLocaleString();
+    document.getElementById('showtime-info').classList.remove('hidden');
+
+    loadSeats(m.showtime_id);
+    startSeatAutoRefresh(m.showtime_id);
+}
+
+// ══════════════════════════════════════════════════
+// AUTO-REFRESH  — polls every 15 s so that when a
+// lock held by another user expires, the seat turns
+// back to available automatically (Chapter 3 FR vii)
+// ══════════════════════════════════════════════════
+function startSeatAutoRefresh(showtimeId) {
+    clearInterval(_seatRefreshTimer);
+    _seatRefreshTimer = setInterval(function() {
+        if (state.selectedMovie && state.selectedMovie.showtime_id === showtimeId) {
+            fetchSeatsQuietly(showtimeId);
+        }
+    }, 15000);
+}
+
+// Fetches seats without wiping the user's own selections
+function fetchSeatsQuietly(showtimeId) {
+    fetch(API + '/api/seats?showtime_id=' + showtimeId + '&user_id=' + state.currentUser.user_id)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            // Merge: keep selected state for seats the current user has locked
+            var prevSelected = state.selectedSeatIds.slice();
+            state.allSeats = data;
+            // Restore selections that are still valid
+            state.selectedSeatIds = prevSelected.filter(function(id) {
+                var seat = data.find(function(s) { return s.id === id; });
+                return seat && (seat.status === 'locked_by_you');
+            });
+            renderSeats();
+        })
+        .catch(function() {});
+}
+
+// ══════════════════════════════════════════════════
+// P3 — SEAT MAP  →  GET /api/seats
+// ══════════════════════════════════════════════════
+function loadSeats(showtimeId) {
+    document.getElementById('seat-container').innerHTML =
+        '<p style="color:var(--text-secondary);font-size:13px;padding:20px;grid-column:1/-1">Loading seats…</p>';
+
+    fetch(API + '/api/seats?showtime_id=' + showtimeId + '&user_id=' + state.currentUser.user_id)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            state.allSeats        = data;
+            state.selectedSeatIds = [];
+            renderSeats();
+        })
+        .catch(function() { showToast('Could not load seat map.', 'error'); });
+}
+
+function renderSeats() {
+    var container = document.getElementById('seat-container');
+    container.innerHTML = '';
+    clearInterval(_countdownInterval);   // clear previous countdown tick
+
+    var available = 0;
+    var seatButtons = {};   // id → button element, needed for countdown updates
+
+    state.allSeats.forEach(function(seat) {
+        var btn = document.createElement('button');
+        btn.className   = 'seat-btn';
+        btn.dataset.id  = seat.id;
+        btn.title       = seat.seat_label + ' · Quality: ' + seat.quality_score + '/10';
+
+        switch (seat.status) {
+            case 'taken':
+                btn.textContent = seat.seat_label;
+                btn.classList.add('taken');
+                btn.disabled = true;
+                break;
+
+            case 'locked_by_other':
+                // Show a live countdown so the user can see exactly when the
+                // lock expires and the seat becomes available again (FR vii)
+                btn.classList.add('locked-other');
+                btn.disabled = true;
+                btn.title += ' · Held by another user';
+                if (seat.lock_expires_at) {
+                    btn.dataset.expiresAt = seat.lock_expires_at;
+                    btn.textContent = formatCountdown(seat.lock_expires_at);
+                } else {
+                    btn.textContent = seat.seat_label;
+                }
+                break;
+
+            case 'locked_by_you':
+                // User's own lock — show countdown on the seat button
+                btn.classList.add('locked-you');
+                btn.onclick = function() { toggleSeat(seat, btn); };
+                if (seat.lock_expires_at) {
+                    btn.dataset.expiresAt = seat.lock_expires_at;
+                    btn.textContent = formatCountdown(seat.lock_expires_at);
+                } else {
+                    btn.textContent = seat.seat_label;
+                }
+                // Mark as selected in state
+                if (state.selectedSeatIds.indexOf(seat.id) === -1) {
+                    state.selectedSeatIds.push(seat.id);
+                }
+                break;
+
+            default:   // 'available'
+                available++;
+                btn.textContent = seat.seat_label;
+                btn.classList.add(
+                    seat.quality_score >= 8.5 ? 'quality-high' :
+                    seat.quality_score >= 7.0 ? 'quality-mid'  : 'quality-low'
+                );
+                btn.onclick = function() { toggleSeat(seat, btn); };
+        }
+
+        container.appendChild(btn);
+        seatButtons[seat.id] = btn;
+    });
+
+    document.getElementById('info-avail').textContent = available;
+    updateSummary();
+
+    // ── Countdown tick: updates every second for all locked seats ──
+    _countdownInterval = setInterval(function() {
+        var now    = Math.floor(Date.now() / 1000);
+        var expired = [];
+
+        state.allSeats.forEach(function(seat) {
+            if (!seat.lock_expires_at) return;
+            var btn = seatButtons[seat.id];
+            if (!btn) return;
+
+            var remaining = seat.lock_expires_at - now;
+            if (remaining <= 0) {
+                expired.push(seat.id);
+            } else if (seat.status === 'locked_by_other' || seat.status === 'locked_by_you') {
+                btn.textContent = formatCountdown(seat.lock_expires_at);
+            }
+        });
+
+        // If any locks have expired, quietly refresh the whole map
+        if (expired.length > 0) {
+            fetchSeatsQuietly(state.selectedMovie.showtime_id);
+        }
+    }, 1000);
+}
+
+// Returns "M:SS" remaining from a Unix timestamp
+function formatCountdown(expiresAt) {
+    var remaining = Math.max(0, expiresAt - Math.floor(Date.now() / 1000));
+    var m = Math.floor(remaining / 60);
+    var s = remaining % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+// ══════════════════════════════════════════════════
+// SEAT TOGGLE + LOCK  →  POST /api/lock-seat
+// ══════════════════════════════════════════════════
+function toggleSeat(seat, btn) {
+    var idx = state.selectedSeatIds.indexOf(seat.id);
+
+    if (idx !== -1) {
+        state.selectedSeatIds.splice(idx, 1);
+        btn.classList.remove('selected', 'locked-you');
+        btn.textContent = seat.seat_label;
+        btn.classList.add(
+            seat.quality_score >= 8.5 ? 'quality-high' :
+            seat.quality_score >= 7.0 ? 'quality-mid'  : 'quality-low'
+        );
+        fetch(API + '/api/unlock-seat', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                showtime_id: state.selectedMovie.showtime_id,
+                seat_id: seat.id, user_id: state.currentUser.user_id
+            })
+        }).catch(function() {});
+        updateSummary();
+    } else {
+        fetch(API + '/api/lock-seat', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                showtime_id: state.selectedMovie.showtime_id,
+                seat_id: seat.id, user_id: state.currentUser.user_id
+            })
+        })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+        .then(function(res) {
+            if (!res.ok) {
+                showToast(res.data.message || 'Seat could not be locked.', 'error');
+                loadSeats(state.selectedMovie.showtime_id);
+                return;
+            }
+            state.selectedSeatIds.push(seat.id);
+            btn.classList.remove('quality-high', 'quality-mid', 'quality-low');
+            btn.classList.add('selected');
+            // Update seat's lock_expires_at in state so countdown starts
+            var seatInState = state.allSeats.find(function(s) { return s.id === seat.id; });
+            if (seatInState) {
+                seatInState.lock_expires_at = Math.floor(Date.now() / 1000) + 300;
+                seatInState.status = 'locked_by_you';
+            }
+            updateSummary();
+        })
+        .catch(function() { showToast('Server error.', 'error'); });
+    }
+}
+
+function updateSummary() {
+    var n     = state.selectedSeatIds.length;
+    var el    = document.getElementById('selected-summary');
+    var price = state.selectedMovie ? (state.selectedMovie.showtime_price || 0) : 0;
+    el.innerHTML = n === 0
+        ? 'No seats selected. <strong>Click a seat above to begin.</strong>'
+        : '<strong>' + n + ' seat' + (n > 1 ? 's' : '') + ' selected</strong> · Total: <strong>₦' + (price * n).toLocaleString() + '</strong>';
+}
+
+// ══════════════════════════════════════════════════
+// PAYMENT MODAL
+// ══════════════════════════════════════════════════
+function openPaymentModal() {
+    if (!state.selectedSeatIds.length) { showToast('Select at least one seat first.', 'error'); return; }
+    if (!state.selectedMovie)          { showToast('Please select a movie first.',    'error'); return; }
+
+    var m      = state.selectedMovie;
+    var n      = state.selectedSeatIds.length;
+    var price  = m.showtime_price || 0;
+    var labels = state.selectedSeatIds.map(function(id) {
+        var s = state.allSeats.find(function(x) { return x.id === id; });
+        return s ? s.seat_label : id;
+    }).join(', ');
+
+    document.getElementById('modal-movie').textContent = m.title;
+    document.getElementById('modal-time').textContent  = m.showtime_time;
+    document.getElementById('modal-seats').textContent = labels;
+    document.getElementById('modal-price').textContent = '₦' + price.toLocaleString();
+    document.getElementById('modal-total').lastChild.textContent = '₦' + (price * n).toLocaleString();
+    document.getElementById('payment-modal').classList.remove('hidden');
+}
+
+function closePaymentModal() {
+    document.getElementById('payment-modal').classList.add('hidden');
+}
+
+// ══════════════════════════════════════════════════
+// P4 — PAYMENT  →  initialize then verify
+// P5 (Preference Learning) fires inside /verify
+// ══════════════════════════════════════════════════
+function handlePayment() {
+    var btn = document.getElementById('pay-btn');
+    btn.disabled = true; btn.textContent = 'Processing…';
+    var m = state.selectedMovie;
+
+    fetch(API + '/api/payment/initialize', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user_id:     state.currentUser.user_id,
+            showtime_id: m.showtime_id,
+            seat_ids:    state.selectedSeatIds,
+            email:       'user' + state.currentUser.user_id + '@cineselect.ng'
+        })
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+        if (!res.ok) throw new Error(res.data.message || 'Payment init failed.');
+        state.paymentRef = res.data.reference;
+        if (res.data.demo_mode) return verifyPayment(res.data.reference);
+        window.open(res.data.authorization_url, '_blank');
+        setTimeout(function() { verifyPayment(res.data.reference); }, 6000);
+    })
+    .catch(function(err) {
+        showToast(err.message, 'error');
+        btn.disabled = false; btn.textContent = 'Pay with Paystack';
+    });
+}
+
+function verifyPayment(reference) {
+    var m = state.selectedMovie;
+    fetch(API + '/api/payment/verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            reference:   reference,
+            user_id:     state.currentUser.user_id,
+            showtime_id: m.showtime_id,
+            seat_ids:    state.selectedSeatIds
+        })
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+        closePaymentModal();
+        document.getElementById('pay-btn').disabled    = false;
+        document.getElementById('pay-btn').textContent = 'Pay with Paystack';
+
+        if (!res.ok) { showToast(res.data.message || 'Booking failed.', 'error'); return; }
+
+        showToast('✓ Booking confirmed! Ref: ' + res.data.booking_reference, 'success');
+        state.selectedSeatIds = [];
+        loadRecommendations();
+        loadSeats(m.showtime_id);
+        loadBookingHistory();
+    })
+    .catch(function() {
+        showToast('Verification error. Please try again.', 'error');
+        document.getElementById('pay-btn').disabled    = false;
+        document.getElementById('pay-btn').textContent = 'Pay with Paystack';
+    });
+}
+
+// ══════════════════════════════════════════════════
+// BOOKING HISTORY  →  GET /api/my-bookings/:id
+// ══════════════════════════════════════════════════
+function loadBookingHistory() {
+    if (!state.currentUser) return;
+    fetch(API + '/api/my-bookings/' + state.currentUser.user_id)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var list = document.getElementById('booking-list');
+            list.innerHTML = '';
+            if (!data.length) {
+                list.innerHTML = '<p class="no-history">No bookings yet. Grab some seats!</p>';
+                return;
+            }
+            data.forEach(function(bk) {
+                var el     = document.createElement('div');
+                el.className = 'booking-item';
+                var seats  = Array.isArray(bk.seats) ? bk.seats.join(', ') : (bk.seats || '—');
+                var amount = bk.total_amount_ngn
+                    ? '<span class="bk-amount">₦' + bk.total_amount_ngn.toLocaleString() + '</span>'
+                    : '';
+                el.innerHTML =
+                    '<div>' +
+                        '<div class="bk-title">' + bk.movie_title + '</div>' +
+                        '<div class="bk-meta">' + bk.show_date + ' · ' + bk.showtime + ' · Seats: ' + seats + '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;gap:12px">' +
+                        amount +
+                        '<span class="bk-ref">' + bk.booking_reference + '</span>' +
+                    '</div>';
+                list.appendChild(el);
+            });
+        })
+        .catch(function() {});
+}
+
+// ══════════════════════════════════════════════════
+// RESET  →  POST /api/reset
+// ══════════════════════════════════════════════════
+function confirmReset() {
+    if (!confirm('Clear ALL bookings and seat locks?')) return;
+    fetch(API + '/api/reset', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            showToast(d.message, 'success');
+            state.selectedSeatIds = [];
+            if (state.selectedMovie) loadSeats(state.selectedMovie.showtime_id);
+            loadRecommendations();
+            loadBookingHistory();
+        })
+        .catch(function() { showToast('Reset failed.', 'error'); });
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !document.getElementById('auth-section').classList.contains('hidden')) {
+        var activeTab = document.querySelector('.auth-tab.active');
+        if (activeTab && activeTab.textContent === 'Login') handleLogin();
+        else handleRegister();
+    }
+    if (e.key === 'Escape') closePaymentModal();
+});
+</script>
+</body>
+</html>
