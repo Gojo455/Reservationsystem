@@ -1,4 +1,3 @@
-# ==============================================================================
 # REAL-TIME SEAT-AWARE MOVIE RECOMMENDER — BACKEND (Flask + SQLAlchemy)
 #
 # DFD Processes (Chapter 3, Level 1 Decomposition):
@@ -8,13 +7,12 @@
 #   P4 — Payment Processing  (/api/payment/initialize, /api/payment/verify)
 #   P5 — Preference Learning  (called internally after booking confirmation)
 #
-# Data Stores (Chapter 3, ERD):
+# Data Stores:
 #   D1 — Users & Preferences  (User, UserPreference)
 #   D2 — Movies & Showtimes   (Movie, Cinema, Hall, Showtime)
 #   D3 — Seats & Seat Locks   (Seat + in-memory seat_locks dict)
 #   D4 — Bookings             (Booking, BookingSeat)
 #   D5 — Movie Ratings        (MovieRating)
-# ==============================================================================
 
 import os
 import json
@@ -28,9 +26,8 @@ from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
-# ------------------------------------------------------------------------------
 # APP INIT
-# ------------------------------------------------------------------------------
+
 app = Flask(__name__)
 CORS(app)
 
@@ -43,31 +40,30 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # ------------------------------------------------------------------------------
-# NON-FUNCTIONAL REQUIREMENT: Concurrency (Chapter 3, Section 3.2.2 — ii)
+# NON-FUNCTIONAL REQUIREMENT: Concurrency
 # In-memory seat lock store.
 # Key   : (showtime_id, row_label, col_number)
 # Value : { 'user_id': int, 'expires_at': float (Unix timestamp) }
 # Locks expire after 5 minutes (300 seconds) per Chapter 3, Requirement vii.
 # ------------------------------------------------------------------------------
-SEAT_LOCK_DURATION = 300   # seconds
+SEAT_LOCK_DURATION = 300   # In seconds ooooooo
 seat_locks = {}
 
 
-# ==============================================================================
-# SECURITY HELPERS (Chapter 3, Section 3.2.1 — i / Section 3.2.2 — i)
+
+# SECURITY HELPERS
 # PBKDF2-HMAC-SHA256 with a 16-byte random salt.
 # No third-party library required — uses Python's built-in hashlib.
-# ==============================================================================
+
 
 def hash_password(plain_text):
-    """Return 'hex_salt:hex_key' string. Never stores plaintext."""
     salt = os.urandom(16)
     key = hashlib.pbkdf2_hmac('sha256', plain_text.encode('utf-8'), salt, 100_000)
     return binascii.hexlify(salt).decode() + ':' + binascii.hexlify(key).decode()
 
 
 def verify_password(stored_hash, plain_text):
-    """Verify a plaintext password against a stored hash."""
+    # Verify a plaintext password against a stored hash.
     try:
         salt_hex, key_hex = stored_hash.split(':')
         salt = binascii.unhexlify(salt_hex)
@@ -77,65 +73,62 @@ def verify_password(stored_hash, plain_text):
         return False
 
 
-# ==============================================================================
-# DATABASE MODELS  (Chapter 3, Section 3.4.3 — ERD)
-# ==============================================================================
 
-# ------------------------------------------------------------------------------
-# D1 — Users & Preferences
-# ------------------------------------------------------------------------------
+# DATABASE MODELS
+
+# D1  Users & Preferences
+
 
 class User(db.Model):
     __tablename__ = 'user'
-    id            = db.Column(db.Integer, primary_key=True)
-    username      = db.Column(db.String(80),  unique=True, nullable=False)
-    email         = db.Column(db.String(120), unique=True, nullable=False)
-    # Stored as 'hex_salt:hex_key'  — never plaintext (Chapter 3, Security NFR)
-    password      = db.Column(db.String(255), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80),  unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     avatar_colour = db.Column(db.String(20),  default='#2ecc71')
-    created_at    = db.Column(db.DateTime,    default=datetime.utcnow)
-    is_admin      = db.Column(db.Boolean,     default=False)
+    created_at = db.Column(db.DateTime,    default=datetime.utcnow)
+    is_admin = db.Column(db.Boolean,     default=False)
 
-    preference    = db.relationship('UserPreference', backref='user',
+    preference = db.relationship('UserPreference', backref='user',
                                     uselist=False, cascade='all, delete-orphan')
-    reservations  = db.relationship('Reservation', backref='user', lazy=True)
-    bookings      = db.relationship('Booking',     backref='user', lazy=True)
-    ratings       = db.relationship('MovieRating', backref='user', lazy=True)
+    reservations = db.relationship('Reservation', backref='user', lazy=True)
+    bookings = db.relationship('Booking',     backref='user', lazy=True)
+    ratings = db.relationship('MovieRating', backref='user', lazy=True)
 
 
 class UserPreference(db.Model):
     """
-    D1 — Implicit genre preference profile.
+    D1  Implicit genre preference profile.
     Chapter 3: preferences stored as JSON dict mapping genre → score (0.0–1.0).
-    One-to-one with User (user_id is both PK and FK).
+    One to one with User (user_id is both PK and FK).
     Updated by P5 (Preference Learning) after every confirmed booking.
     """
     __tablename__ = 'user_preference'
-    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     # e.g. '{"Sci-Fi": 0.6, "Drama": 0.4}'  — empty dict for new users (cold-start)
     preferences = db.Column(db.Text, nullable=False, default='{}')
 
 
-# ------------------------------------------------------------------------------
-# D2 — Movies & Showtimes
-# ------------------------------------------------------------------------------
+
+# D2  Movies & Showtimes
+
 
 class Cinema(db.Model):
     __tablename__ = 'cinema'
-    id      = db.Column(db.Integer, primary_key=True)
-    name    = db.Column(db.String(100), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
     address = db.Column(db.String(255))
-    area    = db.Column(db.String(100))
-    halls   = db.relationship('Hall', backref='cinema', lazy=True)
+    area = db.Column(db.String(100))
+    halls = db.relationship('Hall', backref='cinema', lazy=True)
 
 
 class Hall(db.Model):
     __tablename__ = 'hall'
-    id        = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     cinema_id = db.Column(db.Integer, db.ForeignKey('cinema.id'))
-    name      = db.Column(db.String(50))
-    rows      = db.Column(db.Integer)
-    columns   = db.Column(db.Integer)
+    name = db.Column(db.String(50))
+    rows = db.Column(db.Integer)
+    columns = db.Column(db.Integer)
     showtimes = db.relationship('Showtime', backref='hall', lazy=True)
 
 
@@ -146,41 +139,40 @@ class Movie(db.Model):
     director, age_rating, is_featured, is_hot.
     """
     __tablename__ = 'movie'
-    id           = db.Column(db.Integer, primary_key=True)
-    title        = db.Column(db.String(150), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(150), nullable=False)
     # Comma-separated genres, e.g. "Sci-Fi,Thriller"
-    genre        = db.Column(db.String(100))
-    description  = db.Column(db.Text)
-    duration     = db.Column(db.Integer)          # minutes
-    rating       = db.Column(db.Float, default=0.0)  # TMDB-style 0–10
-    language     = db.Column(db.String(30),  default='English')
+    genre = db.Column(db.String(100))
+    description = db.Column(db.Text)
+    duration = db.Column(db.Integer)          # minutes
+    rating = db.Column(db.Float, default=0.0)  # TMDB-style 0–10
+    language = db.Column(db.String(30),  default='English')
     release_date = db.Column(db.String(20))
-    poster_url   = db.Column(db.String(255))
+    poster_url = db.Column(db.String(255))
     # JSON array string, e.g. '["Actor A", "Actor B"]'
-    cast_list    = db.Column(db.Text)
-    director     = db.Column(db.String(100))
-    age_rating   = db.Column(db.String(10))
-    is_featured  = db.Column(db.Boolean, default=False)
-    is_hot       = db.Column(db.Boolean, default=False)
+    cast_list = db.Column(db.Text)
+    director = db.Column(db.String(100))
+    age_rating = db.Column(db.String(10))
+    is_featured = db.Column(db.Boolean, default=False)
+    is_hot = db.Column(db.Boolean, default=False)
 
-    showtimes    = db.relationship('Showtime',    backref='movie', lazy=True)
-    ratings      = db.relationship('MovieRating', backref='movie', lazy=True)
+    showtimes = db.relationship('Showtime',    backref='movie', lazy=True)
+    ratings = db.relationship('MovieRating', backref='movie', lazy=True)
 
 
 class Showtime(db.Model):
     __tablename__ = 'showtime'
-    id        = db.Column(db.Integer, primary_key=True)
-    movie_id  = db.Column(db.Integer, db.ForeignKey('movie.id'))
-    hall_id   = db.Column(db.Integer, db.ForeignKey('hall.id'))
+    id = db.Column(db.Integer, primary_key=True)
+    movie_id = db.Column(db.Integer, db.ForeignKey('movie.id'))
+    hall_id = db.Column(db.Integer, db.ForeignKey('hall.id'))
     show_date = db.Column(db.Date)
-    time      = db.Column(db.String(20))   # "HH:MM"
-    price     = db.Column(db.Float)
-    seats     = db.relationship('Seat', backref='showtime', lazy=True)
+    time = db.Column(db.String(20))   # "HH:MM"
+    price = db.Column(db.Float)
+    seats = db.relationship('Seat', backref='showtime', lazy=True)
 
 
-# ------------------------------------------------------------------------------
-# D3 — Seats & Seat Locks
-# ------------------------------------------------------------------------------
+# D3  Seats & Seat Locks
+
 
 class Seat(db.Model):
     """
@@ -195,21 +187,21 @@ class Seat(db.Model):
         db.UniqueConstraint('showtime_id', 'row_label', 'col_number',
                             name='uq_seat_showtime_row_col'),
     )
-    id            = db.Column(db.Integer, primary_key=True)
-    showtime_id   = db.Column(db.Integer, db.ForeignKey('showtime.id'))
-    row_label     = db.Column(db.String(5))
-    col_number    = db.Column(db.Integer)
-    category      = db.Column(db.String(20), default='standard')  # VIP/standard/back
+    id = db.Column(db.Integer, primary_key=True)
+    showtime_id = db.Column(db.Integer, db.ForeignKey('showtime.id'))
+    row_label = db.Column(db.String(5))
+    col_number = db.Column(db.Integer)
+    category = db.Column(db.String(20), default='standard')  # VIP/standard/back
     quality_score = db.Column(db.Float,   default=5.0)
-    status        = db.Column(db.String(20), default='available')  # 'available'|'taken'
+    status = db.Column(db.String(20), default='available')  # 'available'|'taken'
 
     booking_seats = db.relationship('BookingSeat', backref='seat', lazy=True)
-    reservations  = db.relationship('Reservation', backref='seat', lazy=True)
+    reservations = db.relationship('Reservation', backref='seat', lazy=True)
 
 
-# ------------------------------------------------------------------------------
-# D4 — Bookings
-# ------------------------------------------------------------------------------
+
+# D4  Bookings
+
 
 class Booking(db.Model):
     """
@@ -217,13 +209,13 @@ class Booking(db.Model):
     One booking → many seats via BookingSeat junction table.
     """
     __tablename__ = 'booking'
-    id                = db.Column(db.Integer, primary_key=True)
-    user_id           = db.Column(db.Integer, db.ForeignKey('user.id'))
-    showtime_id       = db.Column(db.Integer, db.ForeignKey('showtime.id'))
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    showtime_id = db.Column(db.Integer, db.ForeignKey('showtime.id'))
     booking_reference = db.Column(db.String(20), unique=True, nullable=False)
-    total_amount      = db.Column(db.Float)
-    status            = db.Column(db.String(20), default='confirmed')
-    created_at        = db.Column(db.DateTime,   default=datetime.utcnow)
+    total_amount = db.Column(db.Float)
+    status = db.Column(db.String(20), default='confirmed')
+    created_at = db.Column(db.DateTime,   default=datetime.utcnow)
 
     booking_seats = db.relationship('BookingSeat', backref='booking',
                                     cascade='all, delete-orphan', lazy=True)
@@ -235,9 +227,9 @@ class BookingSeat(db.Model):
     A single booking can cover multiple seats; each seat belongs to one booking.
     """
     __tablename__ = 'booking_seat'
-    id         = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     booking_id = db.Column(db.Integer, db.ForeignKey('booking.id'))
-    seat_id    = db.Column(db.Integer, db.ForeignKey('seat.id'))
+    seat_id = db.Column(db.Integer, db.ForeignKey('seat.id'))
 
 
 class Reservation(db.Model):
@@ -246,15 +238,13 @@ class Reservation(db.Model):
     For new bookings the Booking + BookingSeat models are used instead.
     """
     __tablename__ = 'reservation'
-    id           = db.Column(db.Integer, primary_key=True)
-    user_id      = db.Column(db.Integer, db.ForeignKey('user.id'))
-    seat_id      = db.Column(db.Integer, db.ForeignKey('seat.id'))
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    seat_id = db.Column(db.Integer, db.ForeignKey('seat.id'))
     booking_time = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-# ------------------------------------------------------------------------------
-# D5 — Movie Ratings
-# ------------------------------------------------------------------------------
+# D5  Movie Ratings
 
 class MovieRating(db.Model):
     """
@@ -265,10 +255,10 @@ class MovieRating(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'movie_id', name='uq_rating_user_movie'),
     )
-    id       = db.Column(db.Integer, primary_key=True)
-    user_id  = db.Column(db.Integer, db.ForeignKey('user.id'))
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     movie_id = db.Column(db.Integer, db.ForeignKey('movie.id'))
-    stars    = db.Column(db.Integer)   # 1–5
+    stars = db.Column(db.Integer)   # 1–5
 
 
 # Auto-create all tables on first run
@@ -284,9 +274,9 @@ with app.app_context():
         cursor.close()
 
 
-# ==============================================================================
-# SEAT LOCK HELPERS  (Chapter 3 — P3, Seat Management)
-# ==============================================================================
+
+# SEAT LOCK HELPERS
+
 
 def _lock_key(showtime_id, row, col):
     return (showtime_id, row, col)
@@ -318,9 +308,9 @@ def get_seat_lock_status(showtime_id, row, col, requesting_user_id):
     return 'available'
 
 
-# ==============================================================================
-# P2 — RECOMMENDATION ENGINE  (Chapter 3, Section 3.4.4)
-#
+
+# P2  The Recommendation Engine
+
 # Hybrid scoring model — 6 signals, score capped at 99:
 #   Signal I   — Genre Match          max 40 pts
 #   Signal II  — Seat Availability    max 25 pts
@@ -328,7 +318,7 @@ def get_seat_lock_status(showtime_id, row, col, requesting_user_id):
 #   Signal IV  — Showtime Proximity   max 10 pts
 #   Signal V   — Collaborative Filter max 10 pts
 #   Signal VI  — Movie Rating Bonus   max  5 pts  (additive)
-# ==============================================================================
+
 
 def compute_recommendation_scores(user_id, request_date, selected_genres=None):
     """
@@ -386,10 +376,6 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
             if jaccard > 0.1:
                 similar_user_movie_ids |= other_movie_ids
 
-    # ── Identify candidate movies ─────────────────────────────────────────────
-    # A candidate is any movie with at least one 'available' seat for a
-    # showtime on request_date (Chapter 3: "each movie that has at least
-    # one available seat for a showtime on the requested date").
     _purge_expired_locks()
     now_hour = datetime.now().hour
 
@@ -435,7 +421,7 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
         if not available_seats:
             continue   # No seats available → not a candidate
 
-        # ── Signal I: Genre Match (max 40 pts) ────────────────────────────────
+        # ── Signal I: Genre Match (max 40 pts)
         movie_genres  = [g.strip().lower() for g in movie.genre.split(',')]
         num_genres    = len(movie_genres)
 
@@ -466,24 +452,24 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
         # quality_score is 0–10; normalise to 0–1 then multiply by 15
         signal_quality = (avg_quality / 10.0) * 15.0
 
-        # ── Signal IV: Showtime Proximity (max 10 pts) ────────────────────────
+        # ── Signal IV: Showtime Proximity (max 10 pts)
         try:
             show_hour = int(next_show.time.split(':')[0])
         except (ValueError, IndexError):
             show_hour = now_hour
-        diff              = abs(show_hour - now_hour)
-        proximity_value   = max(0.0, 1.0 - diff / 12.0)
-        signal_proximity  = proximity_value * 10.0
+        diff = abs(show_hour - now_hour)
+        proximity_value = max(0.0, 1.0 - diff / 12.0)
+        signal_proximity = proximity_value * 10.0
 
-        # ── Signal V: Collaborative Filtering (max 10 pts) ────────────────────
+        # Signal V: Collaborative Filtering (max 10 pts)
         # 10-point boost if any similar user has booked this candidate movie
         signal_collab = 10.0 if movie.id in similar_user_movie_ids else 0.0
 
-        # ── Signal VI: Movie Rating Bonus (max +5 pts) ────────────────────────
+        #  Signal VI: Movie Rating Bonus (max +5 pts)
         # movie.rating is on a 0–10 TMDB scale (Chapter 3 ERD)
         signal_rating_bonus = (movie.rating / 10.0) * 5.0
 
-        # ── Composite Score ───────────────────────────────────────────────────
+        # Composite Score
         raw_score = (
             signal_genre
             + signal_availability
@@ -527,12 +513,11 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
     return scored_movies[:6]
 
 
-# ==============================================================================
-# P5 — PREFERENCE LEARNING  (Chapter 3, Section 3.4.4 — Implicit Preference)
-#
+
+# P5  PREFERENCE LEARNING
 # Called internally after every confirmed booking.
 # Increments each genre score by 0.2, capped at 1.0.
-# ==============================================================================
+
 
 def update_user_preferences(user_id, movie_genres):
     """
@@ -552,13 +537,13 @@ def update_user_preferences(user_id, movie_genres):
     # Caller is responsible for db.session.commit()
 
 
-# ==============================================================================
-# API ROUTES
-# ==============================================================================
 
-# ------------------------------------------------------------------------------
-# P1 — AUTHENTICATION  (D1: Users & Preferences)
-# ------------------------------------------------------------------------------
+#  The API Routes
+
+
+
+# P1  AUTHENTICATION  (D1: Users & Preferences)
+
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -569,7 +554,7 @@ def register():
     """
     data = request.json or {}
     username = data.get('username', '').strip()
-    email    = data.get('email', '').strip()
+    email = data.get('email', '').strip()
     password = data.get('password', '')
 
     if not username or not email or not password:
@@ -602,7 +587,7 @@ def login():
     FR ii — User Authentication.
     Verifies password using PBKDF2-HMAC-SHA256.
     """
-    data     = request.json or {}
+    data = request.json or {}
     username = data.get('username', '').strip()
     password = data.get('password', '')
 
@@ -622,9 +607,9 @@ def login():
     }), 200
 
 
-# ------------------------------------------------------------------------------
-# P2 — RECOMMENDATION ENGINE  (D1, D2, D3)
-# ------------------------------------------------------------------------------
+
+# P2  RECOMMENDATION ENGINE  (Using D1, D2, D3)
+
 
 @app.route('/api/recommendations', methods=['GET'])
 def get_recommendations():
@@ -654,9 +639,9 @@ def get_recommendations():
     return jsonify(recommendations), 200
 
 
-# ------------------------------------------------------------------------------
+
 # P3 — SEAT MANAGEMENT  (D3: Seats & Seat Locks)
-# ------------------------------------------------------------------------------
+
 
 @app.route('/api/seats', methods=['GET'])
 def get_seats():
@@ -670,7 +655,7 @@ def get_seats():
       user_id     (required, needed to distinguish own locks from others')
     """
     showtime_id = request.args.get('showtime_id', type=int)
-    user_id     = request.args.get('user_id',     type=int)
+    user_id = request.args.get('user_id',     type=int)
 
     if not showtime_id or not user_id:
         return jsonify({"message": "showtime_id and user_id are required."}), 400
@@ -731,7 +716,7 @@ def lock_seat():
         return jsonify({"message": "Seat is already booked."}), 409
 
     _purge_expired_locks()
-    key  = _lock_key(showtime_id, seat.row_label, seat.col_number)
+    key = _lock_key(showtime_id, seat.row_label, seat.col_number)
     lock = seat_locks.get(key)
 
     if lock and lock['user_id'] != user_id and lock['expires_at'] > time.time():
@@ -757,16 +742,16 @@ def unlock_seat():
 
     Body: { showtime_id, seat_id, user_id }
     """
-    data        = request.json or {}
+    data = request.json or {}
     showtime_id = data.get('showtime_id')
-    seat_id     = data.get('seat_id')
-    user_id     = data.get('user_id')
+    seat_id = data.get('seat_id')
+    user_id = data.get('user_id')
 
     seat = Seat.query.get(seat_id)
     if not seat:
         return jsonify({"message": "Seat not found."}), 404
 
-    key  = _lock_key(showtime_id, seat.row_label, seat.col_number)
+    key = _lock_key(showtime_id, seat.row_label, seat.col_number)
     lock = seat_locks.get(key)
 
     if lock and lock['user_id'] == user_id:
@@ -776,16 +761,16 @@ def unlock_seat():
     return jsonify({"message": "No active lock found for this seat."}), 404
 
 
-# ------------------------------------------------------------------------------
-# P4 — PAYMENT PROCESSING  (Paystack integration + Demo mode)
-# ------------------------------------------------------------------------------
+
+# P4  PAYMENT PROCESSING  (Paystack integration + Demo mode)
+
 
 PAYSTACK_SECRET = os.environ.get('PAYSTACK_SECRET_KEY', '')
 
 
 def _paystack_request(endpoint, payload=None, method='POST'):
     """Helper: make an authenticated request to the Paystack API."""
-    url     = f"https://api.paystack.co{endpoint}"
+    url = f"https://api.paystack.co{endpoint}"
     headers = {
         'Authorization': f'Bearer {PAYSTACK_SECRET}',
         'Content-Type':  'application/json'
@@ -810,11 +795,11 @@ def payment_initialize():
 
     Body: { user_id, showtime_id, seat_ids: [int, ...], email }
     """
-    data        = request.json or {}
-    user_id     = data.get('user_id')
+    data = request.json or {}
+    user_id = data.get('user_id')
     showtime_id = data.get('showtime_id')
-    seat_ids    = data.get('seat_ids', [])
-    email       = data.get('email', '')
+    seat_ids = data.get('seat_ids', [])
+    email = data.get('email', '')
 
     if not all([user_id, showtime_id, seat_ids]):
         return jsonify({"message": "user_id, showtime_id and seat_ids are required."}), 400
@@ -823,8 +808,8 @@ def payment_initialize():
     if not showtime:
         return jsonify({"message": "Showtime not found."}), 404
 
-    amount_ngn   = showtime.price * len(seat_ids)
-    amount_kobo  = int(amount_ngn * 100)   # Paystack uses kobo
+    amount_ngn = showtime.price * len(seat_ids)
+    amount_kobo = int(amount_ngn * 100)   # Paystack uses kobo
 
     # Demo mode: no live Paystack key configured (Chapter 3, Reliability NFR)
     if not PAYSTACK_SECRET:
@@ -872,11 +857,11 @@ def payment_verify():
 
     Body: { reference, user_id, showtime_id, seat_ids: [int, ...] }
     """
-    data        = request.json or {}
-    reference   = data.get('reference', '')
-    user_id     = data.get('user_id')
+    data   = request.json or {}
+    reference = data.get('reference', '')
+    user_id  = data.get('user_id')
     showtime_id = data.get('showtime_id')
-    seat_ids    = data.get('seat_ids', [])
+    seat_ids = data.get('seat_ids', [])
 
     if not all([reference, user_id, showtime_id, seat_ids]):
         return jsonify({"message": "reference, user_id, showtime_id and seat_ids are required."}), 400
@@ -885,7 +870,7 @@ def payment_verify():
     if reference.startswith('DEMO-') or not PAYSTACK_SECRET:
         payment_ok = True
     else:
-        result     = _paystack_request(f'/transaction/verify/{reference}', method='GET')
+        result  = _paystack_request(f'/transaction/verify/{reference}', method='GET')
         payment_ok = (result.get('status') and
                       result.get('data', {}).get('status') == 'success')
 
@@ -903,11 +888,11 @@ def payment_verify():
         total_amount = showtime.price * len(seat_ids)
 
         booking = Booking(
-            user_id           = user_id,
-            showtime_id       = showtime_id,
-            booking_reference = booking_ref,
-            total_amount      = total_amount,
-            status            = 'confirmed'
+            user_id=user_id,
+            showtime_id=showtime_id,
+            booking_reference=booking_ref,
+            total_amount=total_amount,
+            status='confirmed'
         )
         db.session.add(booking)
         db.session.flush()
@@ -923,7 +908,7 @@ def payment_verify():
                 seat_locks.pop(key, None)
                 booked_seat_labels.append(f"{seat.row_label}{seat.col_number}")
 
-        # P5 — Preference Learning (Chapter 3, Section 3.4.4)
+        # P5 For Preference Learning
         movie = Movie.query.get(showtime.movie_id)
         if movie and movie.genre:
             update_user_preferences(user_id, movie.genre)
@@ -942,9 +927,8 @@ def payment_verify():
         return jsonify({"message": f"Booking error: {str(e)}"}), 500
 
 
-# ------------------------------------------------------------------------------
 # SUPPORTING ROUTES
-# ------------------------------------------------------------------------------
+
 
 @app.route('/api/my-bookings/<int:user_id>', methods=['GET'])
 def get_my_bookings(user_id):
@@ -1101,7 +1085,6 @@ def reset_system():
 
 
 
-# ==============================================================================
 # ADMIN ROUTES — protected, only accessible when user.is_admin == True
 #
 # How the protection works:
@@ -1115,7 +1098,6 @@ def reset_system():
 #   POST /api/admin/add-movie          — create movie + showtime + seats
 #   GET  /api/admin/movies             — list all movies with showtime counts
 #   DELETE /api/admin/delete-movie/<id>— remove movie + all showtimes + seats
-# ==============================================================================
 
 def _require_admin(user_id):
     """
@@ -1223,13 +1205,13 @@ def admin_add_movie():
     5. Compute seat quality scores using Chapter 3 formula and insert all seats
     6. Commit everything in one transaction — if anything fails, nothing is saved
     """
-    data    = request.json or {}
+    data = request.json or {}
     user_id = data.get('user_id')
 
     _, err = _require_admin(user_id)
     if err: return err
 
-    # ── Validate required fields ──────────────────────────────────────────────
+    # Validate required fields
     required = ['title', 'genre', 'duration', 'rating', 'age_rating',
                 'director', 'hall_id', 'show_date', 'show_time', 'price']
     missing = [f for f in required if not data.get(f)]
@@ -1246,46 +1228,43 @@ def admin_add_movie():
         return jsonify({"message": "show_date must be YYYY-MM-DD."}), 400
 
     try:
-        # ── Step 3: Create Movie ──────────────────────────────────────────────
+        #  Step 3 Create Movie
         movie = Movie(
-            title       = data['title'].strip(),
-            genre       = data['genre'].strip(),
+            title= data['title'].strip(),
+            genre= data['genre'].strip(),
             description = data.get('description', '').strip(),
-            duration    = int(data['duration']),
-            rating      = float(data['rating']),
-            age_rating  = data['age_rating'].strip(),
-            director    = data.get('director', '').strip(),
-            cast_list   = data.get('cast_list', '').strip(),
-            poster_url  = data.get('poster_url', '').strip() or None,
+            duration= int(data['duration']),
+            rating= float(data['rating']),
+            age_rating= data['age_rating'].strip(),
+            director= data.get('director', '').strip(),
+            cast_list= data.get('cast_list', '').strip(),
+            poster_url= data.get('poster_url', '').strip() or None,
             is_featured = bool(data.get('is_featured', False)),
-            is_hot      = bool(data.get('is_hot', False))
+            is_hot= bool(data.get('is_hot', False))
         )
         db.session.add(movie)
         db.session.flush()   # get movie.id without committing
 
         # ── Step 4: Create Showtime ───────────────────────────────────────────
         showtime = Showtime(
-            movie_id  = movie.id,
-            hall_id   = hall.id,
-            show_date = show_date,
-            time      = data['show_time'].strip(),
-            price     = float(data['price'])
+            movie_id= movie.id,
+            hall_id= hall.id,
+            show_date= show_date,
+            time = data['show_time'].strip(),
+            price= float(data['price'])
         )
         db.session.add(showtime)
         db.session.flush()   # get showtime.id
-
-        # ── Step 5: Create Seats using Chapter 3 quality formula ──────────────
+        # Step 5: Create Seats using Chapter 3 quality formula
         #
         # The formula (from Section 3.4.4):
         #   row_score    = 1 - |r - mid_row| / total_rows
         #   col_score    = 1 - |c - mid_col| / total_cols
         #   quality_score = (row_score * 0.5 + col_score * 0.5) * 10
-        #
         # Where:
         #   r, c      = zero-indexed row and column position
         #   mid_row   = (total_rows - 1) / 2   e.g. for 5 rows → 2.0
         #   mid_col   = (total_cols - 1) / 2   e.g. for 8 cols → 3.5
-        #
         # Seats closest to the centre score near 10.0
         # Seats at the corners score near 0.0
         # The score is stored in the DB and used by Signal III of the engine.
@@ -1302,14 +1281,14 @@ def admin_add_movie():
                 col_score = 1 - (abs(c_idx - mid_col) / total_cols)
                 q_score   = round((row_score * 0.5 + col_score * 0.5) * 10, 2)
                 db.session.add(Seat(
-                    showtime_id   = showtime.id,
-                    row_label     = label,
-                    col_number    = c_idx + 1,
-                    quality_score = q_score,
-                    status        = 'available'
+                    showtime_id= showtime.id,
+                    row_label= label,
+                    col_number= c_idx + 1,
+                    quality_score= q_score,
+                    status= 'available'
                 ))
 
-        # ── Step 6: Commit everything atomically ──────────────────────────────
+        #  Step 6: Commit everything atomicall
         db.session.commit()
 
         return jsonify({
@@ -1382,10 +1361,10 @@ def admin_delete_movie(movie_id):
         return jsonify({"message": "Delete error: " + str(e)}), 500
 
 
-# ------------------------------------------------------------------------------
+
 # STATIC FILE SERVING — open index.html via http://127.0.0.1:5000
 # instead of the file:// protocol (avoids CORS issues entirely)
-# ------------------------------------------------------------------------------
+
 from flask import send_from_directory
 
 @app.route('/')
@@ -1397,14 +1376,14 @@ def serve_static(filename):
     return send_from_directory('.', filename)
 
 
-# ------------------------------------------------------------------------------
+
 # DEBUG ROUTE — verify recommendation engine and preference learning (Q1)
 # GET /api/debug/recommendations?user_id=1&date=YYYY-MM-DD
 #
 # Returns a detailed breakdown of every signal for every candidate movie,
 # plus the user's current preference profile so you can see how P5
 # has been updating it after each booking.
-# ------------------------------------------------------------------------------
+
 @app.route('/api/debug/recommendations', methods=['GET'])
 def debug_recommendations():
     """
@@ -1457,7 +1436,5 @@ def debug_recommendations():
         }
     }), 200
 
-
-# ------------------------------------------------------------------------------
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
