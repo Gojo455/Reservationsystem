@@ -422,7 +422,7 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
             continue   # No seats available → not a candidate
 
         # ── Signal I: Genre Match (max 40 pts)
-        movie_genres  = [g.strip().lower() for g in movie.genre.split(',')]
+        movie_genres = [g.strip().lower() for g in (movie.genre or '').split(',') if g.strip()]
         num_genres    = len(movie_genres)
 
         if selected_genres:

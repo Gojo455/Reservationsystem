@@ -56,8 +56,10 @@ def seed_database():
             db.session.add(cinema)
             db.session.commit()
 
-            hall = Hall(cinema_id=cinema.id, name="Hall 1", rows=5, columns=8)
+            hall = Hall(cinema_id=cinema.id, name="Hall 1", rows=8, columns=12)
+            hall2 = Hall(cinema_id=cinema.id, name="Hall 2", rows=5, columns=8)
             db.session.add(hall)
+            db.session.add(hall2)
             db.session.commit()
 
             # ── 6. Movies split across two dates ──────────────────────────────
@@ -156,11 +158,12 @@ def seed_database():
             # col_score    = 1 - |c - mid_col| / total_cols
             # quality_score = (row_score * 0.5 + col_score * 0.5) * 10
             #
-            row_labels = ['A', 'B', 'C', 'D', 'E']
+            import string
+            row_labels = list(string.ascii_uppercase[:hall.rows])
             total_rows = hall.rows       # 5
             total_cols = hall.columns    # 8
-            mid_row    = (total_rows - 1) / 2.0   # 2.0
-            mid_col    = (total_cols - 1) / 2.0   # 3.5
+            mid_row = (total_rows - 1) / 2.0   # 2.0
+            mid_col = (total_cols - 1) / 2.0   # 3.5
 
             for show in seeded_shows:
                 for r_idx, label in enumerate(row_labels):

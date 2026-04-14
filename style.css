@@ -1,23 +1,4 @@
-/* ============================================================
-   CINESELECT — style.css
-   All visual rules that back index.html.
-   The file is organised to mirror the page structure:
-   1. Reset & Root Variables
-   2. Scrollbar
-   3. Topbar
-   4. Auth Section
-   5. Hero Slider
-   6. Section Headings
-   7. Recommendation Cards (P2)
-   8. Seat Map (P3)
-   9. Booking Bar
-  10. Booking History
-  11. Payment Modal
-  12. Toast
-  13. Utility / Animations
-============================================================ */
-
-/* ── 1. Reset & Root Variables ─────────────────────────── */
+/*  Reset & Root Variables */
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
@@ -75,13 +56,13 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* ── 2. Scrollbar ──────────────────────────────────────── */
+/*  Scrolbar  */
 ::-webkit-scrollbar              { width: 6px; }
 ::-webkit-scrollbar-track        { background: var(--bg-base); }
 ::-webkit-scrollbar-thumb        { background: var(--text-dim); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover  { background: var(--text-secondary); }
 
-/* ── 3. Topbar ─────────────────────────────────────────── */
+/*  Topbar  */
 #topbar {
     position: sticky;
     top: 0;
@@ -133,7 +114,7 @@ body {
     color: var(--text-primary);
 }
 
-/* Logout button */
+/* 4 Logout button */
 #logout-btn {
     padding: 6px 14px;
     background: transparent;
@@ -184,14 +165,14 @@ body {
     transform: translateX(16px);
 }
 
-/* ── Page wrapper ──────────────────────────────────────── */
+/*  Page wrapper */
 .page {
     max-width: 1100px;
     margin: 0 auto;
     padding: 32px 24px;
 }
 
-/* ── 4. Auth Section ───────────────────────────────────── */
+/* 4. Auth Section  */
 #auth-section {
     min-height: calc(100vh - 56px);
     display: flex;
@@ -319,7 +300,7 @@ body {
     margin-top: 12px;
 }
 
-/* ── 5. Hero Slider ────────────────────────────────────── */
+/* 5. Hero Slider  */
 #hero-slider-wrap {
     position: relative;
     overflow: hidden;
@@ -380,7 +361,7 @@ body {
     background: var(--gold);
 }
 
-/* ── 6. Section Headings ───────────────────────────────── */
+/*  6. Section Headings  */
 .section-heading {
     font-family: var(--font-display);
     font-size: 22px;
@@ -404,7 +385,7 @@ body {
     letter-spacing: 0;
 }
 
-/* ── 7. Recommendation Cards (P2) ──────────────────────── */
+/* 7. Recommendation Cards (P2)  */
 #reco-section {
     margin-bottom: 48px;
 }
@@ -602,7 +583,7 @@ body {
     border-color: var(--gold);
 }
 
-/* ── 8. Seat Map (P3) ──────────────────────────────────── */
+/*  8. Seat Map */
 #seat-section {
     margin-bottom: 48px;
 }
@@ -656,12 +637,12 @@ body {
 /* Seat grid — 8 columns matching the 8-column hall */
 #seat-container {
     display: grid;
-    grid-template-columns: repeat(8, 44px);
+    grid-template-columns: repeat(auto-fill, 44px);
     gap: 10px;
     justify-content: center;
 }
 
-/* ── Seat button base ── */
+/*  Seat button base  */
 .seat-btn {
     width: 44px;
     height: 44px;
@@ -697,30 +678,30 @@ body {
     z-index: 1;
 }
 
-/* ── Chapter 3 FR vi: 4 visual states ── */
 
-/* State 1 — Available, high quality (score ≥ 8.5): Gold */
+
+/* Seat state Available, high quality having (score ≥ 8.5): Gold */
 .seat-btn.quality-high {
     background: var(--gold);
     border-color: var(--gold-dim);
     color: #000000;
 }
 
-/* State 2 — Available, mid quality (score ≥ 7.0): Green */
+/* Seat state Available, mid quality  having (score ≥ 7.0): Green */
 .seat-btn.quality-mid {
     background: var(--green);
     border-color: #16a34a;
     color: #ffffff;
 }
 
-/* State 3 — Available, lower quality: Dark steel */
+/* Seat state: Available lower quality: Dark steel */
 .seat-btn.quality-low {
     background: #374151;
     border-color: #4b5563;
     color: var(--text-secondary);
 }
 
-/* State 4 — Selected by the current user: Blue */
+/* Seat state Selected by the current user: Blue */
 .seat-btn.selected {
     background: var(--blue) !important;
     border-color: #93c5fd !important;
@@ -730,7 +711,7 @@ body {
     z-index: 1;
 }
 
-/* State 5 — Locked by the current user (5-min in-memory lock): Pulsing blue */
+/* Seat state 5 — Locked by the current user: Pulsing blue */
 .seat-btn.locked-you {
     background: var(--blue) !important;
     border-color: #93c5fd !important;
@@ -738,7 +719,7 @@ body {
     animation: pulse-lock 1.5s ease-in-out infinite;
 }
 
-/* State 6 — Locked by ANOTHER user: Amber, non-clickable */
+/* Seat state Locked by another user */
 .seat-btn.locked-other {
     background: var(--amber);
     border-color: #d97706;
@@ -747,7 +728,7 @@ body {
     opacity: 0.8;
 }
 
-/* State 7 — Permanently taken/booked: Red, heavily faded */
+/* Seat state Permanently taken/booked: Red, heavily faded */
 .seat-btn.taken {
     background: var(--red);
     border-color: #b91c1c;
@@ -780,7 +761,7 @@ body {
     flex-shrink: 0;
 }
 
-/* ── 9. Booking Bar ────────────────────────────────────── */
+/*  9. Booking bar side */
 #booking-bar {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -832,7 +813,7 @@ body {
 
 .btn-reset:hover { background: rgba(239, 68, 68, 0.1); }
 
-/* ── 10. Booking History ───────────────────────────────── */
+/* Booking History */
 #history-section {
     margin-bottom: 60px;
 }
@@ -885,7 +866,7 @@ body {
     padding: 20px 0;
 }
 
-/* ── 11. Payment Modal ─────────────────────────────────── */
+/*Payment Modal  */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -982,7 +963,7 @@ body {
 .btn-pay:hover    { background: #16a34a; }
 .btn-pay:disabled { background: var(--text-dim); cursor: wait; }
 
-/* ── 12. Toast Notification ────────────────────────────── */
+/*  Toast Notification */
 #toast {
     position: fixed;
     bottom: 28px;
@@ -1006,7 +987,7 @@ body {
 #toast.error   { border-color: rgba(239, 68,  68,  0.4); color: var(--red);   }
 #toast.info    { border-color: var(--border-gold);        color: var(--gold);  }
 
-/* ── 13. Utility & Animations ──────────────────────────── */
+/* 4 Utility ans animations  */
 .hidden { display: none !important; }
 
 @keyframes fadeUp {
@@ -1172,6 +1153,47 @@ body {
     flex-shrink: 0;
 }
 .btn-delete:hover { background: rgba(239,68,68,0.12); }
+.steps-strip {
+    display: flex;
+    align-items: center;
+    margin-bottom: 32px;
+}
+.step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0.35;
+    transition: opacity 0.3s;
+}
+.step.active { opacity: 1; }
+.step-number {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--gold);
+    color: var(--gold);
+    font-family: var(--font-display);
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.step.active .step-number {
+    background: var(--gold);
+    color: #000;
+}
+.step-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.step.active .step-label { color: var(--text-primary); }
+.step-connector {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    margin: 0 12px;
+    min-width: 24px;
+}
 
 /* Responsive: stack columns on small screens */
 @media (max-width: 800px) {
@@ -1179,7 +1201,7 @@ body {
     .admin-form-grid  { grid-template-columns: 1fr; }
 }
 
-/* ── Responsive tweaks ─────────────────────────────────── */
+/*  Responsive tweaks  */
 @media (max-width: 600px) {
     #topbar { padding: 0 16px; }
 
