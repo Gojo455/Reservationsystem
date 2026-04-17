@@ -50,7 +50,7 @@
     </div>
 </section>
 
-<!--(post-login) ════ -->
+<!--(post-login) -->
 <section id="app-section" class="hidden">
 <div class="page">
     <!-- Hero slider -->
@@ -161,7 +161,7 @@
 
         <!-- Left column: Add Movie form -->
         <div class="admin-card">
-            <h3 class="admin-card-title">Add New Movie</h3>
+            <h3 class="admin-card-title">Add New Movies</h3>
 
             <div class="admin-form-grid">
                 <div class="form-group">
@@ -448,7 +448,6 @@ function handleLogout() {
     document.getElementById('logout-btn').classList.add('hidden');
     document.getElementById('admin-btn').classList.add('hidden');
     document.getElementById('admin-section').classList.add('hidden');
-    document.getElementById('app-section').classList.remove('hidden');
     document.getElementById('login-username').value = '';
     document.getElementById('login-password').value = '';
     document.getElementById('auth-error').classList.add('hidden');
@@ -460,6 +459,7 @@ function handleLogout() {
         'No seats selected. <strong>Click a seat above to begin.</strong>';
 
     showToast('Logged out successfully.', 'info');
+    setStep(1);
 }
 
 

@@ -10,7 +10,7 @@ def seed_database():
         try:
             print("Starting seed process...")
 
-            # ── 1. Clear all tables in dependency order ────────────────────────
+            #  1. Clear all tables in dependency order
             db.session.query(Reservation).delete()
             db.session.query(UserPreference).delete()
             db.session.query(Seat).delete()
@@ -21,25 +21,25 @@ def seed_database():
             db.session.query(User).delete()
             db.session.commit()
 
-            # ── 2. Dates ───────────────────────────────────────────────────────
-            today    = date.today()
+            # 2. Dates
+            today = date.today()
             tomorrow = today + timedelta(days=1)
 
-            # ── 3. Users ───────────────────────────────────────────────────────
+            # 3. Users
             # Admin account — is_admin=True unlocks the admin panel in the UI.
             # The admin can add movies, showtimes and delete content without
             # touching seed.py or the database directly.
             admin = User(username="admin", email="admin@cineselect.ng",
                          password=hash_password("admin123"), is_admin=True)
 
-            ayo  = User(username="Ayo",  email="ayo@example.com",
+            ayo = User(username="Ayo",  email="ayo@example.com",
                         password=hash_password("password123"))
             temi = User(username="Temi", email="temi@example.com",
                         password=hash_password("temi456"))
             db.session.add_all([admin, ayo, temi])
             db.session.commit()
 
-            # ── 4. Preference profiles ─────────────────────────────────────────
+            #  4. Preference profiles
             # Ayo prefers Sci-Fi/Thriller — so on login those movies should
             # score higher in the Genre Match signal (verifiable via debug route)
             db.session.add_all([
@@ -50,9 +50,9 @@ def seed_database():
             ])
             db.session.commit()
 
-            # ── 5. Cinema + Hall ───────────────────────────────────────────────
+            #  5. Cinema + Hall
             cinema = Cinema(name="Ayo's Grand Theatre",
-                            address="123 AI Avenue, Lagos")
+                            address="123 Banyero Avenue, Lagos")
             db.session.add(cinema)
             db.session.commit()
 
@@ -62,7 +62,7 @@ def seed_database():
             db.session.add(hall2)
             db.session.commit()
 
-            # ── 6. Movies split across two dates ──────────────────────────────
+            #  6. Movies split across two dates
             #
             # TODAY (3 movies):
             #   Inception       — Sci-Fi / Thriller   18:00  ₦3,000
@@ -81,7 +81,7 @@ def seed_database():
             #     lower for Ayo but higher for Temi (Drama preference 0.8).
             #   • The Showtime Proximity signal differs per date — today's movies
             #     score based on today's clock, tomorrow's score lower (they're >12h away).
-            # ------------------------------------------------------------------
+
 
             schedule = [
                 # (title, genre, duration, rating, age_rating, director, cast, description, show_date, show_time, price)
@@ -121,10 +121,22 @@ def seed_database():
                     "A young man uncovers a disturbing secret at his girlfriend's family home.",
                     tomorrow, "14:00", 2000.0
                 ),
+                (
+                    "SuperMan: a Legacy", "Sci-fi,Thriller, Action, Adventure", 140, 7, "PG-13",
+                    "James Gunn", "David Corenswet, Nicholas Hoult",
+                    "KSuperman must handle Lex Luthor's misuse of resources while confronting his kryptonian heritage.",
+                    today, "12:00", 3500.0
+                ),
+                (
+                    "Ninja Assasin", "Action,Thriller", 93, 6.3, "R",
+                    "James Mcteigue", "Rain, Naomie Harris, Rick Yune, Sho kosugi, Sung Kang",
+                    "A young ninja, Raizo, turns his back on his an orphanage that raised him.",
+                    tomorrow, "9:00", 2000.0
+                ),
             ]
 
             seeded_movies = []
-            seeded_shows  = []
+            seeded_shows = []
 
             for row in schedule:
                 (title, genre, duration, rating, age_rating,
@@ -152,7 +164,7 @@ def seed_database():
 
             db.session.commit()
 
-            # ── 7. Seats — Chapter 3 quality formula for every showtime ───────
+            #  7. Seats Chapter 3 quality formula for every showtime
             #
             # row_score    = 1 - |r - mid_row| / total_rows
             # col_score    = 1 - |c - mid_col| / total_cols
@@ -170,7 +182,7 @@ def seed_database():
                     for c_idx in range(total_cols):
                         row_score = 1 - (abs(r_idx - mid_row) / total_rows)
                         col_score = 1 - (abs(c_idx - mid_col) / total_cols)
-                        q_score   = round((row_score * 0.5 + col_score * 0.5) * 10, 2)
+                        q_score = round((row_score * 0.5 + col_score * 0.5) * 10, 2)
                         db.session.add(Seat(
                             showtime_id=show.id,
                             row_label=label,
@@ -181,7 +193,7 @@ def seed_database():
 
             db.session.commit()
 
-            # ── 8. Seed Temi's past booking on Inception ───────────────────────
+            #  8. Seed Temi's past booking on Inception
             # Required for the Jaccard Collaborative Filtering signal to activate.
             # When Ayo logs in, the engine finds Temi has booked Inception,
             # computes Jaccard similarity, and if > 0.1 gives Inception +10 points.
@@ -194,7 +206,7 @@ def seed_database():
                 db.session.add(Reservation(user_id=temi.id, seat_id=centre_seat.id))
                 db.session.commit()
 
-            # ── 9. Print verification guide ────────────────────────────────────
+            #  9. Print verification guide
             print("\n" + "="*60)
             print("✅  DATABASE SEEDED SUCCESSFULLY")
             print("="*60)

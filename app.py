@@ -1,18 +1,18 @@
-# REAL-TIME SEAT-AWARE MOVIE RECOMMENDER — BACKEND (Flask + SQLAlchemy)
+# REAL-TIME SEAT-AWARE MOVIE RECOMMENDER  BACKEND (Flask + SQLAlchemy)
 #
-# DFD Processes (Chapter 3, Level 1 Decomposition):
-#   P1 — Authentication      (/api/register, /api/login)
-#   P2 — Recommendation Engine (/api/recommendations)
-#   P3 — Seat Management     (/api/seats, /api/lock-seat, /api/unlock-seat)
-#   P4 — Payment Processing  (/api/payment/initialize, /api/payment/verify)
-#   P5 — Preference Learning  (called internally after booking confirmation)
+# My DFD Processes
+#   P1  Authentication      (/api/register, /api/login)
+#   P2  Recommendation Engine (/api/recommendations)
+#   P3  Seat Management     (/api/seats, /api/lock-seat, /api/unlock-seat)
+#   P4  Payment Processing  (/api/payment/initialize, /api/payment/verify)
+#   P5  Preference Learning  (called internally after successful booking)
 #
-# Data Stores:
-#   D1 — Users & Preferences  (User, UserPreference)
-#   D2 — Movies & Showtimes   (Movie, Cinema, Hall, Showtime)
-#   D3 — Seats & Seat Locks   (Seat + in-memory seat_locks dict)
-#   D4 — Bookings             (Booking, BookingSeat)
-#   D5 — Movie Ratings        (MovieRating)
+#  The Data Stores:
+#   D1  Users and Preferences  (User, UserPreference)
+#   D2  Movies nd Showtimes   (Movie, Cinema, Hall, Showtime)
+#   D3 Seats and Seat Locks   (Seat + in-memory seat_locks dict)
+#   D4  Bookings             (Booking, BookingSeat)
+#   D5  Movie Ratings        (MovieRating)
 
 import os
 import json
@@ -39,13 +39,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# ------------------------------------------------------------------------------
+
 # NON-FUNCTIONAL REQUIREMENT: Concurrency
 # In-memory seat lock store.
 # Key   : (showtime_id, row_label, col_number)
 # Value : { 'user_id': int, 'expires_at': float (Unix timestamp) }
-# Locks expire after 5 minutes (300 seconds) per Chapter 3, Requirement vii.
-# ------------------------------------------------------------------------------
+# Locks expire after 5 minutes (300 seconds)
+
 SEAT_LOCK_DURATION = 300   # In seconds ooooooo
 seat_locks = {}
 
@@ -63,7 +63,7 @@ def hash_password(plain_text):
 
 
 def verify_password(stored_hash, plain_text):
-    # Verify a plaintext password against a stored hash.
+    # It verifies a plaintext password against a stored hash.
     try:
         salt_hex, key_hex = stored_hash.split(':')
         salt = binascii.unhexlify(salt_hex)
@@ -74,9 +74,9 @@ def verify_password(stored_hash, plain_text):
 
 
 
-# DATABASE MODELS
+#  My Database Models
 
-# D1  Users & Preferences
+# D1  Users and Preferences
 
 
 class User(db.Model):
@@ -110,7 +110,7 @@ class UserPreference(db.Model):
 
 
 
-# D2  Movies & Showtimes
+# D2  Movies and Showtimes
 
 
 class Cinema(db.Model):
@@ -141,15 +141,14 @@ class Movie(db.Model):
     __tablename__ = 'movie'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150), nullable=False)
-    # Comma-separated genres, e.g. "Sci-Fi,Thriller"
+    # Comma separates the genre, e.g. "Sci-Fi,Thriller"
     genre = db.Column(db.String(100))
     description = db.Column(db.Text)
-    duration = db.Column(db.Integer)          # minutes
-    rating = db.Column(db.Float, default=0.0)  # TMDB-style 0–10
+    duration = db.Column(db.Integer)
+    rating = db.Column(db.Float, default=0.0)
     language = db.Column(db.String(30),  default='English')
     release_date = db.Column(db.String(20))
     poster_url = db.Column(db.String(255))
-    # JSON array string, e.g. '["Actor A", "Actor B"]'
     cast_list = db.Column(db.Text)
     director = db.Column(db.String(100))
     age_rating = db.Column(db.String(10))
@@ -172,13 +171,11 @@ class Showtime(db.Model):
 
 
 # D3  Seats & Seat Locks
-
-
 class Seat(db.Model):
     """
     Chapter 3 ERD: row_label, col_number, category, quality_score, status.
     UNIQUE constraint on (showtime_id, row_label, col_number).
-    quality_score computed by seed.py using the Chapter 3 formula.
+    quality_score computed by seed.py using that formula from Chapter 3 .
     status values: 'available' | 'taken'
     Temporary locks are held in the in-memory seat_locks dict, NOT in this table.
     """
@@ -201,8 +198,6 @@ class Seat(db.Model):
 
 
 # D4  Bookings
-
-
 class Booking(db.Model):
     """
     Chapter 3 ERD: booking_reference (unique), total_amount, status, created_at.
@@ -249,7 +244,7 @@ class Reservation(db.Model):
 class MovieRating(db.Model):
     """
     Chapter 3 ERD: 1–5 star explicit ratings.
-    UNIQUE on (user_id, movie_id) — one rating per user per movie.
+    UNIQUE on (user_id, movie_id)  one rating per user per movie.
     """
     __tablename__ = 'movie_rating'
     __table_args__ = (
@@ -264,7 +259,7 @@ class MovieRating(db.Model):
 # Auto-create all tables on first run
 with app.app_context():
     db.create_all()
-    # Enable WAL mode for concurrent reads (Chapter 3, Non-Functional — Concurrency)
+    # Enable WAL mode for concurrent reads
     from sqlalchemy import event, text
     @event.listens_for(db.engine, 'connect')
     def set_wal_mode(dbapi_connection, connection_record):
@@ -312,12 +307,12 @@ def get_seat_lock_status(showtime_id, row, col, requesting_user_id):
 # P2  The Recommendation Engine
 
 # Hybrid scoring model — 6 signals, score capped at 99:
-#   Signal I   — Genre Match          max 40 pts
-#   Signal II  — Seat Availability    max 25 pts
-#   Signal III — Seat Quality         max 15 pts
-#   Signal IV  — Showtime Proximity   max 10 pts
-#   Signal V   — Collaborative Filter max 10 pts
-#   Signal VI  — Movie Rating Bonus   max  5 pts  (additive)
+#   Signal 1 Genre Match          max 40 pts
+#   Signal 2   Seat Availability    max 25 pts
+#   Signal 3  Seat Quality         max 15 pts
+#   Signal 4   Showtime Proximity   max 10 pts
+#   Signal 5  Collaborative Filter max 10 pts
+#   Signal bonus  Movie Rating Bonus   max  5 pts
 
 
 def compute_recommendation_scores(user_id, request_date, selected_genres=None):
@@ -327,15 +322,15 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
     """
     selected_genres = [g.strip().lower() for g in (selected_genres or [])]
 
-    # ── Load the requesting user's genre preference profile (D1) ─────────────
+    #  Load the requesting user's genre preference profile (D1)
     pref_record = UserPreference.query.filter_by(user_id=user_id).first()
-    user_prefs  = json.loads(pref_record.preferences) if pref_record else {}
+    user_prefs = json.loads(pref_record.preferences) if pref_record else {}
     # Normalise keys to lowercase for case-insensitive matching
-    user_prefs  = {k.lower(): v for k, v in user_prefs.items()}
+    user_prefs = {k.lower(): v for k, v in user_prefs.items()}
 
-    # ── Signal V prep: Jaccard collaborative filtering ────────────────────────
+    #  Signal V prep: Jaccard collaborative filtering
     # Get the requesting user's set of booked movie IDs
-    my_reservations  = Reservation.query.filter_by(user_id=user_id).all()
+    my_reservations = Reservation.query.filter_by(user_id=user_id).all()
     my_booked_seat_ids = {r.seat_id for r in my_reservations}
     my_booked_movie_ids = set()
     for seat_id in my_booked_seat_ids:
@@ -370,8 +365,8 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
         # Jaccard similarity = |A ∩ B| / |A ∪ B|
         if my_booked_movie_ids or other_movie_ids:
             intersection = len(my_booked_movie_ids & other_movie_ids)
-            union        = len(my_booked_movie_ids | other_movie_ids)
-            jaccard      = intersection / union if union > 0 else 0.0
+            union = len(my_booked_movie_ids | other_movie_ids)
+            jaccard = intersection / union if union > 0 else 0.0
             # Chapter 3: users with score > 0.1 are "similar users"
             if jaccard > 0.1:
                 similar_user_movie_ids |= other_movie_ids
@@ -379,7 +374,7 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
     _purge_expired_locks()
     now_hour = datetime.now().hour
 
-    all_movies   = Movie.query.all()
+    all_movies = Movie.query.all()
     scored_movies = []
 
     for movie in all_movies:
@@ -407,7 +402,7 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
             next_show = todays_shows[-1]
 
         # Count available seats (excluding in-memory locks held by others)
-        all_seats   = next_show.seats
+        all_seats = next_show.seats
         total_seats = len(all_seats)
         if total_seats == 0:
             continue
@@ -421,9 +416,9 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
         if not available_seats:
             continue   # No seats available → not a candidate
 
-        # ── Signal I: Genre Match (max 40 pts)
+        #  Signal I: Genre Match (max 40 pts)
         movie_genres = [g.strip().lower() for g in (movie.genre or '').split(',') if g.strip()]
-        num_genres    = len(movie_genres)
+        num_genres = len(movie_genres)
 
         if selected_genres:
             matched = [g for g in movie_genres if g in selected_genres]
@@ -442,17 +437,17 @@ def compute_recommendation_scores(user_id, request_date, selected_genres=None):
         adjusted_ratio = min(1.0, match_ratio + pref_boost)
         signal_genre   = adjusted_ratio * 40.0
 
-        # ── Signal II: Seat Availability (max 25 pts) ─────────────────────────
-        availability_ratio   = len(available_seats) / total_seats
-        signal_availability  = availability_ratio * 25.0
+        # ── Signal II: Seat Availability (max 25 pts)
+        availability_ratio = len(available_seats) / total_seats
+        signal_availability = availability_ratio * 25.0
 
-        # ── Signal III: Seat Quality (max 15 pts) ─────────────────────────────
-        avg_quality   = (sum(s.quality_score for s in available_seats)
+        #  Signal III: Seat Quality (max 15 pts)
+        avg_quality = (sum(s.quality_score for s in available_seats)
                          / len(available_seats))
         # quality_score is 0–10; normalise to 0–1 then multiply by 15
         signal_quality = (avg_quality / 10.0) * 15.0
 
-        # ── Signal IV: Showtime Proximity (max 10 pts)
+        #  Signal IV: Showtime Proximity (max 10 pts)
         try:
             show_hour = int(next_show.time.split(':')[0])
         except (ValueError, IndexError):
@@ -539,12 +534,7 @@ def update_user_preferences(user_id, movie_genres):
 
 
 #  The API Routes
-
-
-
 # P1  AUTHENTICATION  (D1: Users & Preferences)
-
-
 @app.route('/api/register', methods=['POST'])
 def register():
     """
@@ -632,8 +622,8 @@ def get_recommendations():
     except ValueError:
         req_date = date.today()
 
-    genres_param     = request.args.get('genres', '')
-    selected_genres  = [g.strip() for g in genres_param.split(',') if g.strip()]
+    genres_param = request.args.get('genres', '')
+    selected_genres = [g.strip() for g in genres_param.split(',') if g.strip()]
 
     recommendations = compute_recommendation_scores(user_id, req_date, selected_genres)
     return jsonify(recommendations), 200
@@ -701,10 +691,10 @@ def lock_seat():
 
     Body: { showtime_id, seat_id, user_id }
     """
-    data        = request.json or {}
+    data = request.json or {}
     showtime_id = data.get('showtime_id')
-    seat_id     = data.get('seat_id')
-    user_id     = data.get('user_id')
+    seat_id = data.get('seat_id')
+    user_id = data.get('user_id')
 
     if not all([showtime_id, seat_id, user_id]):
         return jsonify({"message": "showtime_id, seat_id and user_id are required."}), 400
@@ -857,9 +847,9 @@ def payment_verify():
 
     Body: { reference, user_id, showtime_id, seat_ids: [int, ...] }
     """
-    data   = request.json or {}
+    data = request.json or {}
     reference = data.get('reference', '')
-    user_id  = data.get('user_id')
+    user_id = data.get('user_id')
     showtime_id = data.get('showtime_id')
     seat_ids = data.get('seat_ids', [])
 
@@ -870,7 +860,7 @@ def payment_verify():
     if reference.startswith('DEMO-') or not PAYSTACK_SECRET:
         payment_ok = True
     else:
-        result  = _paystack_request(f'/transaction/verify/{reference}', method='GET')
+        result = _paystack_request(f'/transaction/verify/{reference}', method='GET')
         payment_ok = (result.get('status') and
                       result.get('data', {}).get('status') == 'success')
 
@@ -884,7 +874,7 @@ def payment_verify():
 
         # Generate unique booking reference
         import uuid
-        booking_ref  = 'BK-' + str(uuid.uuid4())[:8].upper()
+        booking_ref = 'BK-' + str(uuid.uuid4())[:8].upper()
         total_amount = showtime.price * len(seat_ids)
 
         booking = Booking(
@@ -938,8 +928,8 @@ def get_my_bookings(user_id):
     output = []
     for bk in bookings:
         showtime = Showtime.query.get(bk.showtime_id)
-        movie    = Movie.query.get(showtime.movie_id) if showtime else None
-        seats    = [bs.seat for bs in bk.booking_seats]
+        movie = Movie.query.get(showtime.movie_id) if showtime else None
+        seats = [bs.seat for bs in bk.booking_seats]
         output.append({
             "booking_reference": bk.booking_reference,
             "movie_title":       movie.title if movie else "Unknown",
@@ -978,7 +968,7 @@ def get_movies():
     Query params: search (keyword), genre (filter)
     """
     search = request.args.get('search', '').strip().lower()
-    genre  = request.args.get('genre',  '').strip().lower()
+    genre = request.args.get('genre',  '').strip().lower()
 
     query = Movie.query
     if search:
@@ -1021,7 +1011,7 @@ def get_showtimes(movie_id):
 
     output = []
     for st in movie.showtimes:
-        total     = len(st.seats)
+        total = len(st.seats)
         available = sum(1 for s in st.seats if s.status == 'available')
         output.append({
             "id":              st.id,
@@ -1046,10 +1036,10 @@ def rate_movie():
     Body: { user_id, movie_id, stars (1–5) }
     UNIQUE constraint prevents duplicate ratings.
     """
-    data     = request.json or {}
-    user_id  = data.get('user_id')
+    data = request.json or {}
+    user_id = data.get('user_id')
     movie_id = data.get('movie_id')
-    stars    = data.get('stars')
+    stars = data.get('stars')
 
     if not all([user_id, movie_id, stars]) or stars not in range(1, 6):
         return jsonify({"message": "user_id, movie_id and stars (1–5) are required."}), 400
@@ -1245,7 +1235,7 @@ def admin_add_movie():
         db.session.add(movie)
         db.session.flush()   # get movie.id without committing
 
-        # ── Step 4: Create Showtime ───────────────────────────────────────────
+        # Step 4: Create Showtime
         showtime = Showtime(
             movie_id= movie.id,
             hall_id= hall.id,
@@ -1272,14 +1262,14 @@ def admin_add_movie():
         row_labels = ['A','B','C','D','E','F','G','H','I','J'][:hall.rows]
         total_rows = hall.rows
         total_cols = hall.columns
-        mid_row    = (total_rows - 1) / 2.0
-        mid_col    = (total_cols - 1) / 2.0
+        mid_row = (total_rows - 1) / 2.0
+        mid_col = (total_cols - 1) / 2.0
 
         for r_idx, label in enumerate(row_labels):
             for c_idx in range(total_cols):
                 row_score = 1 - (abs(r_idx - mid_row) / total_rows)
                 col_score = 1 - (abs(c_idx - mid_col) / total_cols)
-                q_score   = round((row_score * 0.5 + col_score * 0.5) * 10, 2)
+                q_score = round((row_score * 0.5 + col_score * 0.5) * 10, 2)
                 db.session.add(Seat(
                     showtime_id= showtime.id,
                     row_label= label,
@@ -1318,7 +1308,7 @@ def admin_delete_movie(movie_id):
     Query param: user_id (required, must be admin)
     """
     user_id = request.args.get('user_id', type=int)
-    _, err  = _require_admin(user_id)
+    _, err = _require_admin(user_id)
     if err: return err
 
     movie = Movie.query.get(movie_id)
@@ -1379,7 +1369,6 @@ def serve_static(filename):
 
 # DEBUG ROUTE — verify recommendation engine and preference learning (Q1)
 # GET /api/debug/recommendations?user_id=1&date=YYYY-MM-DD
-#
 # Returns a detailed breakdown of every signal for every candidate movie,
 # plus the user's current preference profile so you can see how P5
 # has been updating it after each booking.

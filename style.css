@@ -296,7 +296,7 @@ body {
     color: #fc8c8c;
     border-radius: var(--radius-sm);
     padding: 10px 14px;
-    font-size: 13px;
+    font-size: 16px;
     margin-top: 12px;
 }
 
@@ -543,12 +543,12 @@ body {
 }
 
 /* Each signal gets its own colour so they are instantly distinguishable */
-.score-bar-fill.genre   { background: #a78bfa; }   /* purple  — Genre Match        */
-.score-bar-fill.avail   { background: var(--green); }  /* green   — Seat Availability  */
-.score-bar-fill.quality { background: var(--gold);  }  /* gold    — Seat Quality       */
-.score-bar-fill.prox    { background: var(--blue);  }  /* blue    — Showtime Proximity */
-.score-bar-fill.collab  { background: #f472b6; }   /* pink    — Collaborative      */
-.score-bar-fill.rating  { background: var(--amber); }  /* amber   — Rating Bonus       */
+.score-bar-fill.genre   { background: #a78bfa; }   /* uses purple reps Genre Match        */
+.score-bar-fill.avail   { background: var(--green); }  /* used green  reps Seat Availability  */
+.score-bar-fill.quality { background: var(--gold);  }  /* color gold reps Seat Quality       */
+.score-bar-fill.prox    { background: var(--blue);  }  /* colr blue reps Showtime Proximity */
+.score-bar-fill.collab  { background: #f472b6; }   /* pink reps Collaborative      */
+.score-bar-fill.rating  { background: var(--amber); }  /* amber reps Rating Bonus       */
 
 .score-bar-val {
     width: 28px;
@@ -1011,9 +1011,8 @@ body {
 }
 
 
-/* ════════════════════════════════════════════════════
-   ADMIN PANEL
-════════════════════════════════════════════════════ */
+/*
+   ADMIN PANEL */
 
 /* Admin button in topbar */
 #admin-btn {
@@ -1023,7 +1022,7 @@ body {
     color: var(--gold);
     border-radius: var(--radius-sm);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s, border-color 0.2s;
