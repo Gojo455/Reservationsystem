@@ -271,10 +271,8 @@ with app.app_context():
 
 
 # SEAT LOCK HELPERS
-
-
-def _lock_key(showtime_id, row, col):
-    return (showtime_id, row, col)
+def _lock_key(showtime_id,row,col):
+    return (showtime_id, row,col)
 
 
 def _purge_expired_locks():
@@ -1144,12 +1142,47 @@ def admin_get_movies():
 
     movies = Movie.query.order_by(Movie.id.desc()).all()
     return jsonify([{
-        "id":            m.id,
-        "title":         m.title,
-        "genre":         m.genre,
-        "rating":        m.rating,
-        "showtime_count": len(m.showtimes)
+        "id": m.id,
+        "title": m.title,
+        "genre": m.genre,
+        "rating": m.rating,
+        "showtime_count": len(m.showtimes),
+        "showtimes": [{
+            "id": st.id,
+            "show_date": st.show_date.isoformat(),
+            "time": st.time,
+            "price": st.price
+        } for st in m.showtimes]
     } for m in movies]), 200
+
+# For updating already existing Movie showtime
+
+@app.route('/api/admin/update-showtime', methods=['POST'])
+def admin_update_showtime():
+    """
+    Updates the date, time, and/or price of an existing showtime.
+    Does NOT touch seats — existing bookings are preserved.
+    Body: { user_id, showtime_id, show_date, show_time, price }
+    """
+    data = request.json or {}
+    user_id = data.get('user_id')
+
+    _, err = _require_admin(user_id)
+    if err: return err
+
+    showtime = Showtime.query.get(data.get('showtime_id'))
+    if not showtime:
+        return jsonify({"message": "Showtime not found."}), 404
+
+    try:
+        showtime.show_date = date.fromisoformat(data['show_date'])
+        showtime.time      = data['show_time'].strip()
+        showtime.price     = float(data['price'])
+        db.session.commit()
+        return jsonify({"message": "Showtime updated successfully."}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": "Update error: " + str(e)}), 500
 
 
 @app.route('/api/admin/add-movie', methods=['POST'])
@@ -1367,11 +1400,11 @@ def serve_static(filename):
 
 
 
-# DEBUG ROUTE — verify recommendation engine and preference learning (Q1)
+# DEBUG ROUTE to verify recommendation engine and preference learning (Q1)
 # GET /api/debug/recommendations?user_id=1&date=YYYY-MM-DD
-# Returns a detailed breakdown of every signal for every candidate movie,
-# plus the user's current preference profile so you can see how P5
-# has been updating it after each booking.
+""" Returns a detailed breakdown of every signal for every candidate movie,
+ plus the user's current preference profile so you can see how P5
+ has been updating it after each booking."""
 
 @app.route('/api/debug/recommendations', methods=['GET'])
 def debug_recommendations():

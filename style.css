@@ -1030,6 +1030,43 @@ body {
 #admin-btn:hover { background: rgba(245,200,66,0.1); }
 #admin-btn.active { background: var(--gold); color: #000; }
 
+.showtime-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+.st-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    width: 120px;
+    flex-shrink: 0;
+}
+.showtime-edit-row input {
+    padding: 5px 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 12px;
+    width: auto;
+}
+.btn-save-st {
+    padding: 5px 12px;
+    background: transparent;
+    border: 1px solid var(--border-gold);
+    color: var(--gold);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.btn-save-st:hover { background: rgba(245,200,66,0.1); }
+
 /* Two-column grid for the panel */
 .admin-grid {
     display: grid;

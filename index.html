@@ -1080,7 +1080,7 @@ function loadAdminHalls(uid) {
         });
 }
 
-// ── Populate the current movies list ───────────────────────────────────────
+// Populate the current movies list
 function loadAdminMovies(uid) {
     var list = document.getElementById('admin-movie-list');
     list.innerHTML = '<p style="color:var(--text-secondary);font-size:13px">Loading…</p>';
@@ -1096,17 +1096,28 @@ function loadAdminMovies(uid) {
             movies.forEach(function(m) {
                 var row = document.createElement('div');
                 row.className = 'admin-movie-row';
-                row.innerHTML =
-                    '<div class="admin-movie-info">' +
-                        '<div class="title">' + m.title + '</div>' +
-                        '<div class="meta">' + m.genre +
-                            ' · ' + m.showtime_count + ' showtime' +
-                            (m.showtime_count !== 1 ? 's' : '') +
-                            ' · ⭐ ' + m.rating +
-                        '</div>' +
-                    '</div>' +
-                    '<button class="btn-delete" data-id="' + m.id + '" data-title="' +
-                        m.title.replace(/"/g, '&quot;') + '" onclick="adminDeleteMovie(this)">Delete</button>';
+                var showtimeRows = '';
+if (m.showtimes && m.showtimes.length) {
+    m.showtimes.forEach(function(st) {
+        showtimeRows +=
+            '<div class="showtime-edit-row">' +
+                '<span class="st-label">' + st.show_date + ' ' + st.time + '</span>' +
+                '<input type="date"   class="st-date"  value="' + st.show_date + '">' +
+                '<input type="time"   class="st-time"  value="' + st.time + '">' +
+                '<input type="number" class="st-price" value="' + st.price + '" min="0">' +
+                '<button class="btn-save-st" data-id="' + st.id + '" onclick="saveShowtime(this)">Save</button>' +
+            '</div>';
+    });
+}
+
+row.innerHTML =
+    '<div class="admin-movie-info">' +
+        '<div class="title">' + m.title + '</div>' +
+        '<div class="meta">' + m.genre + ' · ⭐ ' + m.rating + '</div>' +
+        showtimeRows +
+    '</div>' +
+    '<button class="btn-delete" data-id="' + m.id + '" data-title="' +
+        m.title.replace(/"/g, '&quot;') + '" onclick="adminDeleteMovie(this)">Delete</button>';
                 list.appendChild(row);
             });
         })
@@ -1232,6 +1243,49 @@ function adminDeleteMovie(btn) {
         loadRecommendations();
     })
     .catch(function() { showToast('Server error during delete.', 'error'); });
+}
+
+function saveShowtime(btn) {
+    var row      = btn.closest('.showtime-edit-row');
+    var stId     = btn.dataset.id;
+    var newDate  = row.querySelector('.st-date').value;
+    var newTime  = row.querySelector('.st-time').value;
+    var newPrice = row.querySelector('.st-price').value;
+
+    if (!newDate || !newTime || !newPrice) {
+        showToast('Fill in date, time and price.', 'error');
+        return;
+    }
+
+    btn.disabled    = true;
+    btn.textContent = 'Saving…';
+
+    fetch(API + '/api/admin/update-showtime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user_id:     state.currentUser.user_id,
+            showtime_id: parseInt(stId),
+            show_date:   newDate,
+            show_time:   newTime,
+            price:       parseFloat(newPrice)
+        })
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+        btn.disabled    = false;
+        btn.textContent = 'Save';
+        if (!res.ok) { showToast(res.data.message || 'Update failed.', 'error'); return; }
+        showToast('Showtime updated!', 'success');
+        // Update the visible label so the admin can see the new date immediately
+        row.querySelector('.st-label').textContent = newDate + ' ' + newTime;
+        loadRecommendations();  // engine will now see the new date
+    })
+    .catch(function() {
+        btn.disabled    = false;
+        btn.textContent = 'Save';
+        showToast('Server error.', 'error');
+    });
 }
 
 // Keyboard shortcuts
